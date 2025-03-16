@@ -118,7 +118,7 @@ const StudentDashboard = () => {
                     <div className="item-preview-details">
                       <h3>{item.product.name}</h3>
                       <p>
-                        ${item.product.price.toFixed(2)} × {item.quantity}
+                        ₹{item.product.price.toFixed(2)} × {item.quantity}
                       </p>
                     </div>
                   </div>
@@ -200,7 +200,7 @@ const StudentDashboard = () => {
                   <div className="product-details">
                     <h3>{product.name}</h3>
                     <p className="product-seller">by {product.seller.storeName}</p>
-                    <p className="product-price">${product.price.toFixed(2)}</p>
+                    <p className="product-price">₹{product.price.toFixed(2)}</p>
                     <Link to={`/student/store/${product.seller.id}`} className="btn btn-outline">
                       View Store
                     </Link>

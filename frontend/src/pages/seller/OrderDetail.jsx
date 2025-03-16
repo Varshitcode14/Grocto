@@ -254,9 +254,9 @@ const OrderDetail = () => {
                         />
                       </div>
                       <div className="item-cell name-cell">{item.productName}</div>
-                      <div className="item-cell price-cell">${item.productPrice.toFixed(2)}</div>
+                      <div className="item-cell price-cell">₹{item.productPrice.toFixed(2)}</div>
                       <div className="item-cell qty-cell">{item.quantity}</div>
-                      <div className="item-cell total-cell">${item.subtotal.toFixed(2)}</div>
+                      <div className="item-cell total-cell">₹{item.subtotal.toFixed(2)}</div>
                     </div>
                   ))}
                 </div>
@@ -267,7 +267,7 @@ const OrderDetail = () => {
                 <div className="payment-summary">
                   <div className="summary-row">
                     <span>Subtotal</span>
-                    <span>${order.subtotal.toFixed(2)}</span>
+                    <span>₹{order.subtotal.toFixed(2)}</span>
                   </div>
 
                   {order.gstAmount > 0 && (
@@ -279,12 +279,12 @@ const OrderDetail = () => {
 
                   <div className="summary-row">
                     <span>Delivery Fee</span>
-                    <span>${order.deliveryFee.toFixed(2)}</span>
+                    <span>₹{order.deliveryFee.toFixed(2)}</span>
                   </div>
 
                   <div className="summary-total">
                     <span>Total</span>
-                    <span>${order.totalAmount.toFixed(2)}</span>
+                    <span>₹{order.totalAmount.toFixed(2)}</span>
                   </div>
                 </div>
               </div>

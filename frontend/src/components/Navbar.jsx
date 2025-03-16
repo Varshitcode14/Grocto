@@ -1,15 +1,21 @@
 "use client"
 
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import NotificationCenter from "./NotificationCenter"
 import "./Navbar.css"
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const { user, logout } = useAuth()
+  const { user, logout, checkAuthStatus } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Force auth check on every render and location change
+  useEffect(() => {
+    checkAuthStatus()
+  }, [location.pathname])
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)

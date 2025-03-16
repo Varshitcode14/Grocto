@@ -112,7 +112,7 @@ const OrdersList = () => {
                 <div className="order-footer">
                   <div className="order-total">
                     <span className="total-label">Total:</span>
-                    <span className="total-value">${order.totalAmount.toFixed(2)}</span>
+                    <span className="total-value">₹{order.totalAmount.toFixed(2)}</span>
                   </div>
 
                   <Link to={`/student/orders/${order.id}`} className="btn btn-outline btn-sm">

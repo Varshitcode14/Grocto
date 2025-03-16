@@ -1,8 +1,8 @@
 "use client"
 
+import React from "react"
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
-import { AuthProvider } from "./context/AuthContext"
-import { useAuth } from "./context/AuthContext"
+import { AuthProvider, useAuth } from "./context/AuthContext"
 import Navbar from "./components/Navbar"
 import LandingPage from "./pages/LandingPage"
 import SignIn from "./pages/SignIn"
@@ -31,20 +31,32 @@ import "./App.css"
 const DashboardRedirect = () => {
   const { user } = useAuth()
 
-  if (user?.role === "student") return <Navigate to="/student" />
-  if (user?.role === "seller") return <Navigate to="/seller" />
-  return <Navigate to="/" />
+  if (user?.role === "student") return <Navigate to="/student" replace />
+  if (user?.role === "seller") return <Navigate to="/seller" replace />
+  return <Navigate to="/" replace />
+}
+
+// Landing page with auth check
+const LandingPageWithAuthCheck = () => {
+  const { user, checkAuthStatus } = useAuth()
+
+  // Force auth check on landing page
+  React.useEffect(() => {
+    checkAuthStatus()
+  }, [checkAuthStatus])
+
+  return <LandingPage />
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider>
         <div className="app">
           <Navbar />
           <Routes>
             {/* Public routes */}
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<LandingPageWithAuthCheck />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/debug" element={<Debug />} />
@@ -193,8 +205,8 @@ function App() {
           </Routes>
           <Footer />
         </div>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   )
 }
 

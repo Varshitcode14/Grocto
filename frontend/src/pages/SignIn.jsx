@@ -1,19 +1,31 @@
 "use client"
 
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import "./Auth.css"
 
 const SignIn = () => {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const location = useLocation()
+  const { user, login } = useAuth()
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   })
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      if (user.role === "student") {
+        navigate("/student")
+      } else if (user.role === "seller") {
+        navigate("/seller")
+      }
+    }
+  }, [user, navigate])
 
   const handleChange = (e) => {
     const { name, value } = e.target
