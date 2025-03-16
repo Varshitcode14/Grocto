@@ -128,7 +128,7 @@ const InventoryManagement = () => {
                   <h3>{product.name}</h3>
                   {product.description && <p className="product-description">{product.description}</p>}
                 </div>
-                <div className="cell price-cell">${product.price.toFixed(2)}</div>
+                <div className="cell price-cell">₹{product.price.toFixed(2)}</div>
                 <div className="cell stock-cell">
                   <span className={product.stock > 0 ? "in-stock" : "out-of-stock"}>
                     {product.stock > 0 ? product.stock : "Out of stock"}

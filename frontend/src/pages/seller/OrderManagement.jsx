@@ -183,7 +183,7 @@ const OrderManagement = () => {
                 <div className="cell">#{order.id}</div>
                 <div className="cell">{order.customerName}</div>
                 <div className="cell">{formatDate(order.orderDate)}</div>
-                <div className="cell price-cell">${order.totalAmount.toFixed(2)}</div>
+                <div className="cell price-cell">₹{order.totalAmount.toFixed(2)}</div>
                 <div className="cell">
                   <span className={`status-badge ${getStatusBadgeClass(order.status)}`}>
                     {order.status.charAt(0).toUpperCase() + order.status.slice(1)}

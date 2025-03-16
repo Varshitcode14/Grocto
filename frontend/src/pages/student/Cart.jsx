@@ -150,7 +150,7 @@ const Cart = () => {
                   </div>
                   <div className="item-details">
                     <h3>{item.product.name}</h3>
-                    <p className="item-price">${item.product.price.toFixed(2)}</p>
+                    <p className="item-price">₹{item.product.price.toFixed(2)}</p>
                   </div>
                   <div className="item-quantity">
                     <button
@@ -170,7 +170,7 @@ const Cart = () => {
                     </button>
                   </div>
                   <div className="item-subtotal">
-                    <p>${item.subtotal.toFixed(2)}</p>
+                    <p>₹{item.subtotal.toFixed(2)}</p>
                   </div>
                   <div className="item-actions">
                     <button className="remove-btn" onClick={() => removeItem(item.id)} disabled={updating[item.id]}>
@@ -184,21 +184,21 @@ const Cart = () => {
               <h3>Order Summary</h3>
               <div className="summary-row">
                 <span>Subtotal</span>
-                <span>${summary.subtotal.toFixed(2)}</span>
+                <span>₹{summary.subtotal.toFixed(2)}</span>
               </div>
               {summary.gstAmount > 0 && (
                 <div className="summary-row">
                   <span>GST ({store.gstPercentage}%)</span>
-                  <span>${summary.gstAmount.toFixed(2)}</span>
+                  <span>₹{summary.gstAmount.toFixed(2)}</span>
                 </div>
               )}
               <div className="summary-row">
                 <span>Delivery Fee</span>
-                <span>${summary.deliveryFee.toFixed(2)}</span>
+                <span>₹{summary.deliveryFee.toFixed(2)}</span>
               </div>
               <div className="summary-total">
                 <span>Total</span>
-                <span>${summary.total.toFixed(2)}</span>
+                <span>₹{summary.total.toFixed(2)}</span>
               </div>
               <button className="btn btn-primary checkout-btn" onClick={handleCheckout}>
                 Proceed to Checkout

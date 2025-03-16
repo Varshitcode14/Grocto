@@ -1,6 +1,6 @@
 .auth-section {
     padding: 80px 0;
-    background-color: var(--background);
+    background-color: var(--blue-bg-light);
     min-height: calc(100vh - 160px); /* Accounting for navbar and footer */
     display: flex;
     align-items: center;
@@ -8,7 +8,7 @@
   
   .auth-container {
     display: flex;
-    background-color: var(--white);
+    background-color: var(--blue-card);
     border-radius: var(--border-radius);
     overflow: hidden;
     box-shadow: var(--card-shadow);
@@ -30,7 +30,7 @@
   .user-type-toggle {
     display: flex;
     margin-bottom: 30px;
-    background-color: var(--light-gray);
+    background-color: var(--blue-bg-medium);
     border-radius: var(--border-radius);
     padding: 5px;
   }
@@ -76,6 +76,7 @@
     font-size: 1rem;
     transition: border-color 0.3s ease;
     font-family: "Poppins", sans-serif;
+    background-color: var(--blue-surface);
   }
   
   .form-group input:focus {
