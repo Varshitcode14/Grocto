@@ -104,13 +104,16 @@ const Navbar = () => {
               <li className="nav-item">
                 <NotificationCenter />
               </li>
-              <li className="nav-item">
-                <span className="nav-link user-name">Hi, {user.name}</span>
-              </li>
-              <li className="nav-item">
-                <button onClick={handleLogout} className="nav-link btn btn-outline">
-                  Logout
-                </button>
+              <li className="nav-item dropdown">
+                <div className="nav-link user-dropdown">
+                  <span className="user-name">Hi, {user.name}</span>
+                  <div className="dropdown-content">
+                    <Link to="/student/profile" onClick={() => setIsMenuOpen(false)}>
+                      My Profile
+                    </Link>
+                    <button onClick={handleLogout}>Logout</button>
+                  </div>
+                </div>
               </li>
             </>
           ) : (

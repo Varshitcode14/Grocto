@@ -21,9 +21,14 @@ const Checkout = () => {
   const [error, setError] = useState("")
   const [processing, setProcessing] = useState(false)
 
+  // State for saved addresses
+  const [savedAddresses, setSavedAddresses] = useState([])
+  const [isAddingNewAddress, setIsAddingNewAddress] = useState(false)
+
   // Form state
   const [formData, setFormData] = useState({
-    deliveryAddress: "",
+    deliveryAddressId: "",
+    newDeliveryAddress: "",
     deliveryStartTime: "",
     deliveryEndTime: "",
     selectedSlotId: null,
@@ -31,6 +36,7 @@ const Checkout = () => {
 
   useEffect(() => {
     fetchCart()
+    fetchSavedAddresses()
   }, [])
 
   const fetchCart = async () => {
@@ -59,14 +65,6 @@ const Checkout = () => {
         deliveryFee: 0, // Will be set when slot is selected
         total: data.summary.subtotal, // Will be updated when slot is selected
       })
-
-      // Pre-fill address if user has one
-      if (user && user.profile && user.profile.address) {
-        setFormData((prev) => ({
-          ...prev,
-          deliveryAddress: user.profile.address,
-        }))
-      }
     } catch (error) {
       setError(error.message || "Error fetching cart")
       console.error("Error fetching cart:", error)
@@ -75,8 +73,42 @@ const Checkout = () => {
     }
   }
 
+  const fetchSavedAddresses = async () => {
+    try {
+      // In a real app, you would fetch this from your backend
+      // For now, we'll use mock data based on the user's profile
+      const mockAddresses = user?.profile?.addresses || []
+
+      // If there are saved addresses, set the default one as selected
+      if (mockAddresses.length > 0) {
+        const defaultAddress = mockAddresses.find((addr) => addr.isDefault) || mockAddresses[0]
+        setFormData((prev) => ({
+          ...prev,
+          deliveryAddressId: defaultAddress.id.toString(),
+        }))
+      }
+
+      setSavedAddresses(mockAddresses)
+    } catch (error) {
+      console.error("Error fetching saved addresses:", error)
+    }
+  }
+
   const handleChange = (e) => {
     const { name, value } = e.target
+
+    // If selecting an address option
+    if (name === "deliveryAddressId" && value === "new") {
+      setIsAddingNewAddress(true)
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }))
+      return
+    } else if (name === "deliveryAddressId") {
+      setIsAddingNewAddress(false)
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -161,8 +193,14 @@ const Checkout = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    if (!formData.deliveryAddress.trim()) {
+    // Validate address selection
+    if (isAddingNewAddress && !formData.newDeliveryAddress.trim()) {
       setError("Please enter a delivery address")
+      return
+    }
+
+    if (!isAddingNewAddress && !formData.deliveryAddressId) {
+      setError("Please select a delivery address")
       return
     }
 
@@ -180,13 +218,18 @@ const Checkout = () => {
       setProcessing(true)
       setError("")
 
+      // Get the delivery address (either selected or new)
+      const deliveryAddress = isAddingNewAddress
+        ? formData.newDeliveryAddress
+        : savedAddresses.find((addr) => addr.id.toString() === formData.deliveryAddressId)?.address
+
       const response = await fetch("http://localhost:5000/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          deliveryAddress: formData.deliveryAddress,
+          deliveryAddress,
           deliveryStartTime: formData.deliveryStartTime,
           deliveryEndTime: formData.deliveryEndTime,
         }),
@@ -222,6 +265,11 @@ const Checkout = () => {
     return `${hour12}:${minutes} ${ampm}`
   }
 
+  // Check if user profile is complete
+  const isProfileComplete = () => {
+    return user?.profile?.phone && savedAddresses.length > 0
+  }
+
   return (
     <div className="checkout-page">
       <div className="container">
@@ -234,6 +282,18 @@ const Checkout = () => {
 
         {loading ? (
           <div className="loading">Loading checkout information...</div>
+        ) : !isProfileComplete() ? (
+          <div className="profile-incomplete">
+            <h2>Your profile is incomplete</h2>
+            <p>Please complete your profile before placing an order. You need to add:</p>
+            <ul>
+              {!user?.profile?.phone && <li>Phone number</li>}
+              {savedAddresses.length === 0 && <li>At least one delivery address</li>}
+            </ul>
+            <button className="btn btn-primary" onClick={() => navigate("/student/profile")}>
+              Complete Profile
+            </button>
+          </div>
         ) : (
           <div className="checkout-container">
             <div className="checkout-form-container">
@@ -241,18 +301,41 @@ const Checkout = () => {
                 <div className="form-section">
                   <h2>Delivery Information</h2>
 
+                  {/* Address Selection */}
                   <div className="form-group">
-                    <label htmlFor="deliveryAddress">Delivery Address</label>
-                    <textarea
-                      id="deliveryAddress"
-                      name="deliveryAddress"
-                      value={formData.deliveryAddress}
+                    <label htmlFor="deliveryAddressId">Delivery Address</label>
+                    <select
+                      id="deliveryAddressId"
+                      name="deliveryAddressId"
+                      value={formData.deliveryAddressId}
                       onChange={handleChange}
-                      placeholder="Enter your full delivery address"
                       required
-                      rows={3}
-                    ></textarea>
+                    >
+                      <option value="">Select an address</option>
+                      {savedAddresses.map((addr) => (
+                        <option key={addr.id} value={addr.id.toString()}>
+                          {addr.name}: {addr.address} {addr.isDefault ? "(Default)" : ""}
+                        </option>
+                      ))}
+                      <option value="new">+ Add a new address</option>
+                    </select>
                   </div>
+
+                  {/* New Address Input (shown only when "Add a new address" is selected) */}
+                  {isAddingNewAddress && (
+                    <div className="form-group">
+                      <label htmlFor="newDeliveryAddress">New Delivery Address</label>
+                      <textarea
+                        id="newDeliveryAddress"
+                        name="newDeliveryAddress"
+                        value={formData.newDeliveryAddress}
+                        onChange={handleChange}
+                        placeholder="Enter your full delivery address"
+                        required
+                        rows={3}
+                      ></textarea>
+                    </div>
+                  )}
 
                   <div className="form-group">
                     <label>Available Delivery Slots</label>

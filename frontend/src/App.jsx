@@ -15,6 +15,7 @@ import Cart from "./pages/student/Cart"
 import Checkout from "./pages/student/Checkout"
 import OrderConfirmation from "./pages/student/OrderConfirmation"
 import OrdersList from "./pages/student/OrdersList"
+import UserProfile from "./pages/student/Profile" // Import the new profile component
 import SellerDashboard from "./pages/seller/Dashboard"
 import InventoryManagement from "./pages/seller/InventoryManagement"
 import AddProduct from "./pages/seller/AddProduct"
@@ -131,6 +132,15 @@ function App() {
               element={
                 <ProtectedRoute role="student">
                   <OrderConfirmation />
+                </ProtectedRoute>
+              }
+            />
+            {/* Add the new profile route */}
+            <Route
+              path="/student/profile"
+              element={
+                <ProtectedRoute role="student">
+                  <UserProfile />
                 </ProtectedRoute>
               }
             />

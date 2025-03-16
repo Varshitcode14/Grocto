@@ -16,7 +16,18 @@ class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     college_id = db.Column(db.String(50), nullable=False)
+    phone = db.Column(db.String(20))
+    department = db.Column(db.String(100))
+    addresses = db.relationship('Address', backref='student', lazy=True, cascade="all, delete-orphan")
     user = db.relationship('User', backref=db.backref('student', uselist=False))
+
+class Address(db.Model):
+  id = db.Column(db.Integer, primary_key=True)
+  student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+  name = db.Column(db.String(100), nullable=False)
+  address = db.Column(db.Text, nullable=False)
+  is_default = db.Column(db.Boolean, default=False)
+  created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Seller(db.Model):
     id = db.Column(db.Integer, primary_key=True)

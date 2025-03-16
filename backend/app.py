@@ -3,7 +3,7 @@ from flask_cors import CORS
 from datetime import datetime, timedelta
 import os
 from werkzeug.utils import secure_filename
-from models import db, User, Student, Seller, Product, CartItem, CartStore, Order, OrderItem, Notification, DeliverySlot
+from models import db, User, Student, Seller, Product, CartItem, CartStore, Order, OrderItem, Notification, DeliverySlot, Address
 from flask_bcrypt import Bcrypt
 
 app = Flask(__name__)
@@ -119,9 +119,23 @@ def login():
     profile_data = {}
     if user.role == 'student':
         student = Student.query.filter_by(user_id=user.id).first()
+        
+        # Get addresses
+        addresses = []
+        for addr in student.addresses:
+            addresses.append({
+                "id": addr.id,
+                "name": addr.name,
+                "address": addr.address,
+                "isDefault": addr.is_default
+            })
+        
         profile_data = {
             'id': student.id,
-            'collegeId': student.college_id
+            'collegeId': student.college_id,
+            'phone': student.phone,
+            'department': student.department,
+            'addresses': addresses
         }
     elif user.role == 'seller':
         seller = Seller.query.filter_by(user_id=user.id).first()
@@ -164,9 +178,23 @@ def check_auth():
         profile_data = {}
         if user.role == 'student':
             student = Student.query.filter_by(user_id=user.id).first()
+            
+            # Get addresses
+            addresses = []
+            for addr in student.addresses:
+                addresses.append({
+                    "id": addr.id,
+                    "name": addr.name,
+                    "address": addr.address,
+                    "isDefault": addr.is_default
+                })
+            
             profile_data = {
                 'id': student.id,
-                'collegeId': student.college_id
+                'collegeId': student.college_id,
+                'phone': student.phone,
+                'department': student.department,
+                'addresses': addresses
             }
         elif user.role == 'seller':
             seller = Seller.query.filter_by(user_id=user.id).first()
@@ -1151,6 +1179,72 @@ def uploaded_file(filename):
     except Exception as e:
         print(f"Error serving file {filename}: {str(e)}")
         return jsonify({"error": f"Could not serve file: {str(e)}"}), 404
+
+# Add this new route after the existing routes, before the if __name__ == '__main__' line:
+
+@app.route('/api/student/profile', methods=['GET', 'PUT'])
+def student_profile():
+  if 'user_id' not in session or session['role'] != 'student':
+      return jsonify({"error": "Unauthorized"}), 401
+  
+  user = User.query.get(session['user_id'])
+  student = Student.query.filter_by(user_id=user.id).first()
+  
+  if request.method == 'GET':
+      # Get addresses
+      addresses = []
+      for addr in student.addresses:
+          addresses.append({
+              "id": addr.id,
+              "name": addr.name,
+              "address": addr.address,
+              "isDefault": addr.is_default
+          })
+      
+      return jsonify({
+          "profile": {
+              "name": user.name,
+              "email": user.email,
+              "collegeId": student.college_id,
+              "phone": student.phone,
+              "department": student.department,
+              "addresses": addresses
+          }
+      }), 200
+  
+  elif request.method == 'PUT':
+      data = request.json
+      
+      # Update user name if provided
+      if 'name' in data and data['name']:
+          user.name = data['name']
+      
+      # Update student profile fields
+      if 'phone' in data:
+          student.phone = data['phone']
+      
+      if 'department' in data:
+          student.department = data['department']
+      
+      # Handle addresses if provided
+      if 'addresses' in data and isinstance(data['addresses'], list):
+          # First, remove all existing addresses
+          for addr in student.addresses:
+              db.session.delete(addr)
+          
+          # Then add the new addresses
+          for addr_data in data['addresses']:
+              new_addr = Address(
+                  student_id=student.id,
+                  name=addr_data.get('name', 'Default Address'),
+                  address=addr_data.get('address', ''),
+                  is_default=addr_data.get('isDefault', False)
+              )
+              db.session.add(new_addr)
+      
+      db.session.commit()
+      
+      return jsonify({"message": "Profile updated successfully"}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
