@@ -1,15 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 import "./Auth.css"
 
 const SignIn = () => {
-  const [userType, setUserType] = useState("student")
+  const navigate = useNavigate()
+  const { login } = useAuth()
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   })
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -19,9 +23,25 @@ const SignIn = () => {
     })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log("Sign In Data:", { ...formData, userType })
+    setError("")
+
+    try {
+      setLoading(true)
+      const user = await login(formData.email, formData.password)
+
+      // Redirect based on user role
+      if (user.role === "student") {
+        navigate("/student")
+      } else if (user.role === "seller") {
+        navigate("/seller")
+      }
+    } catch (error) {
+      setError(error.message || "Invalid email or password")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -31,20 +51,7 @@ const SignIn = () => {
           <div className="auth-form-container">
             <h2 className="auth-title">Sign In to Grocto</h2>
 
-            <div className="user-type-toggle">
-              <button
-                className={`toggle-btn ${userType === "student" ? "active" : ""}`}
-                onClick={() => setUserType("student")}
-              >
-                Student
-              </button>
-              <button
-                className={`toggle-btn ${userType === "seller" ? "active" : ""}`}
-                onClick={() => setUserType("seller")}
-              >
-                Grocery Seller
-              </button>
-            </div>
+            {error && <div className="error-message">{error}</div>}
 
             <form className="auth-form" onSubmit={handleSubmit}>
               <div className="form-group">
@@ -55,7 +62,7 @@ const SignIn = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder={userType === "student" ? "your.name@college.edu" : "your.store@example.com"}
+                  placeholder="Enter your email"
                   required
                 />
               </div>
@@ -79,8 +86,8 @@ const SignIn = () => {
                 </Link>
               </div>
 
-              <button type="submit" className="btn btn-primary auth-btn">
-                Sign In
+              <button type="submit" className="btn btn-primary auth-btn" disabled={loading}>
+                {loading ? "Signing In..." : "Sign In"}
               </button>
             </form>
 

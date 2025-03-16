@@ -1,0 +1,151 @@
+.dashboard {
+    padding: 40px 0;
+    min-height: calc(100vh - 160px);
+  }
+  
+  .dashboard-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 2.5rem;
+    color: var(--primary-blue);
+    margin-bottom: 10px;
+  }
+  
+  .dashboard-header p {
+    font-size: 1.2rem;
+    color: var(--text-light);
+  }
+  
+  .stats-cards {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+  }
+  
+  .stat-card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 200px;
+  }
+  
+  .stat-icon {
+    font-size: 2.5rem;
+    color: var(--primary-blue);
+    margin-right: 20px;
+  }
+  
+  .stat-content h3 {
+    font-size: 1.1rem;
+    color: var(--text-light);
+    margin-bottom: 5px;
+  }
+  
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--text-dark);
+  }
+  
+  .dashboard-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+    margin-bottom: 60px;
+    flex-wrap: wrap;
+  }
+  
+  .dashboard-action-card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    flex: 1;
+    min-width: 250px;
+    text-decoration: none;
+    color: var(--text-dark);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .dashboard-action-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  }
+  
+  .action-icon {
+    font-size: 3rem;
+    color: var(--primary-blue);
+    margin-bottom: 20px;
+  }
+  
+  .dashboard-action-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+  
+  .dashboard-action-card p {
+    color: var(--text-light);
+  }
+  
+  .store-info {
+    background-color: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  }
+  
+  .store-info h2 {
+    font-size: 1.8rem;
+    color: var(--text-dark);
+    margin-bottom: 20px;
+  }
+  
+  .store-details {
+    margin-bottom: 30px;
+  }
+  
+  .detail-row {
+    display: flex;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+  }
+  
+  .detail-label {
+    font-weight: 600;
+    color: var(--text-dark);
+    width: 150px;
+  }
+  
+  .detail-value {
+    color: var(--text-light);
+  }
+  
+  @media screen and (max-width: 768px) {
+    .stats-cards {
+      flex-direction: column;
+    }
+  
+    .dashboard-actions {
+      flex-direction: column;
+    }
+  
+    .detail-row {
+      flex-direction: column;
+    }
+  
+    .detail-label {
+      margin-bottom: 5px;
+    }
+  }
+  
+  

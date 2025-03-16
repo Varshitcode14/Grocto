@@ -1,16 +1,20 @@
 "use client"
 
 import { useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { useAuth } from "../context/AuthContext"
 import "./Auth.css"
 
 const SignUp = () => {
+  const navigate = useNavigate()
+  const { register } = useAuth()
   const [userType, setUserType] = useState("student")
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     confirmPassword: "",
+    collegeId: "",
   })
 
   const [sellerData, setSellerData] = useState({
@@ -18,6 +22,9 @@ const SignUp = () => {
     storeAddress: "",
     phoneNumber: "",
   })
+
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -35,12 +42,51 @@ const SignUp = () => {
     })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (userType === "student") {
-      console.log("Sign Up Data (Student):", formData)
-    } else {
-      console.log("Sign Up Data (Seller):", { ...formData, ...sellerData })
+    setError("")
+
+    // Validate form
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match")
+      return
+    }
+
+    if (userType === "student" && !formData.collegeId) {
+      setError("College ID is required")
+      return
+    }
+
+    if (userType === "seller" && (!sellerData.storeName || !sellerData.storeAddress || !sellerData.phoneNumber)) {
+      setError("All seller fields are required")
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      // Prepare data for registration
+      const userData = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: userType,
+      }
+
+      if (userType === "student") {
+        userData.collegeId = formData.collegeId
+      } else {
+        userData.storeName = sellerData.storeName
+        userData.storeAddress = sellerData.storeAddress
+        userData.phoneNumber = sellerData.phoneNumber
+      }
+
+      await register(userData)
+      navigate("/signin")
+    } catch (error) {
+      setError(error.message || "Registration failed")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -55,16 +101,20 @@ const SignUp = () => {
               <button
                 className={`toggle-btn ${userType === "student" ? "active" : ""}`}
                 onClick={() => setUserType("student")}
+                type="button"
               >
                 Student
               </button>
               <button
                 className={`toggle-btn ${userType === "seller" ? "active" : ""}`}
                 onClick={() => setUserType("seller")}
+                type="button"
               >
                 Grocery Seller
               </button>
             </div>
+
+            {error && <div className="error-message">{error}</div>}
 
             <form className="auth-form" onSubmit={handleSubmit}>
               <div className="form-group">
@@ -92,6 +142,21 @@ const SignUp = () => {
                   required
                 />
               </div>
+
+              {userType === "student" && (
+                <div className="form-group">
+                  <label htmlFor="collegeId">College ID</label>
+                  <input
+                    type="text"
+                    id="collegeId"
+                    name="collegeId"
+                    value={formData.collegeId}
+                    onChange={handleChange}
+                    placeholder="Enter your college ID"
+                    required
+                  />
+                </div>
+              )}
 
               {userType === "seller" && (
                 <>
@@ -162,8 +227,8 @@ const SignUp = () => {
                 />
               </div>
 
-              <button type="submit" className="btn btn-primary auth-btn">
-                Sign Up
+              <button type="submit" className="btn btn-primary auth-btn" disabled={loading}>
+                {loading ? "Signing Up..." : "Sign Up"}
               </button>
             </form>
 
