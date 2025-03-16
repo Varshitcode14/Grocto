@@ -94,6 +94,14 @@
     display: none;
   }
   
+  .user-name {
+    background-color: #f5f5f5;
+    border-radius: 20px;
+    padding: 6px 12px !important;
+    font-size: 0.9rem;
+    color: #555;
+  }
+  
   @media screen and (max-width: 960px) {
     .nav-menu {
       display: flex;

@@ -57,16 +57,27 @@ const AddProduct = () => {
         productData.append("image", image)
       }
 
+      console.log("Submitting product data:", {
+        name: formData.name,
+        description: formData.description,
+        price: formData.price,
+        stock: formData.stock,
+        hasImage: !!image,
+      })
+
       const response = await fetch("http://localhost:5000/api/products", {
         method: "POST",
         body: productData,
         credentials: "include",
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        const data = await response.json()
         throw new Error(data.error || "Failed to add product")
       }
+
+      console.log("Product added successfully:", data)
 
       // Redirect to inventory page
       navigate("/seller/inventory")
@@ -154,7 +165,10 @@ const AddProduct = () => {
                   {imagePreview ? (
                     <img src={imagePreview || "/placeholder.svg"} alt="Preview" />
                   ) : (
-                    <div className="no-image">No image selected</div>
+                    <div className="no-image">
+                      <span>No image selected</span>
+                      <small>Select an image to preview</small>
+                    </div>
                   )}
                 </div>
               </div>

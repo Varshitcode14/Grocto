@@ -1,0 +1,113 @@
+.store-list-page {
+    padding: 40px 0;
+    min-height: calc(100vh - 160px);
+  }
+  
+  .page-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  
+  .page-header h1 {
+    font-size: 2.5rem;
+    color: var(--primary-blue);
+    margin-bottom: 10px;
+  }
+  
+  .page-header p {
+    font-size: 1.2rem;
+    color: var(--text-light);
+  }
+  
+  .search-bar {
+    margin-bottom: 30px;
+  }
+  
+  .search-bar input {
+    width: 100%;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+  
+  .search-bar input:focus {
+    border-color: var(--primary-blue);
+    outline: none;
+  }
+  
+  .stores-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 30px;
+  }
+  
+  .store-card {
+    background-color: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease;
+    text-decoration: none;
+    color: var(--text-dark);
+    padding: 20px;
+  }
+  
+  .store-card:hover {
+    transform: translateY(-10px);
+  }
+  
+  .store-details {
+    padding: 10px 0;
+  }
+  
+  .store-details h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    color: var(--text-dark);
+  }
+  
+  .store-address {
+    color: var(--text-light);
+    font-size: 0.95rem;
+    margin-bottom: 15px;
+  }
+  
+  .store-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+    color: var(--text-light);
+  }
+  
+  .store-products-count {
+    font-weight: 600;
+    color: var(--primary-blue);
+  }
+  
+  .loading,
+  .no-stores {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-light);
+    font-size: 1.2rem;
+  }
+  
+  .error-message {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  @media screen and (max-width: 768px) {
+    .stores-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  

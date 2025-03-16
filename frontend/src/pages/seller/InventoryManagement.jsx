@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
+import ImageWithFallback from "../../components/ImageWithFallback"
 import "./InventoryManagement.css"
 
 const InventoryManagement = () => {
@@ -29,6 +30,7 @@ const InventoryManagement = () => {
       }
 
       const data = await response.json()
+      console.log("Products fetched:", data.products)
       setProducts(data.products || [])
     } catch (error) {
       setError(error.message || "Error fetching products")
@@ -111,7 +113,13 @@ const InventoryManagement = () => {
               <div key={product.id} className="table-row">
                 <div className="cell image-cell">
                   {product.image ? (
-                    <img src={`http://localhost:5000${product.image}`} alt={product.name} />
+                    <ImageWithFallback
+                      src={product.image || "/placeholder.svg"}
+                      alt={product.name}
+                      height={80}
+                      width={80}
+                      fallbackSrc="/placeholder.svg?height=80&width=80"
+                    />
                   ) : (
                     <div className="no-image">No Image</div>
                   )}

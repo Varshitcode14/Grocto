@@ -1,3 +1,6 @@
+# The error is because we have two functions with the same route and method
+# Let's fix the duplicate route by updating the app.py file
+
 from flask import Flask, jsonify, request, session, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -67,15 +70,17 @@ class CartItem(db.Model):
     student = db.relationship('Student', backref=db.backref('cart_items', lazy=True))
     product = db.relationship('Product')
 
+# Update the Cart model to include store information
+class CartStore(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    store_id = db.Column(db.Integer, db.ForeignKey('seller.id'), nullable=False)
+    student = db.relationship('Student', backref=db.backref('cart_store', uselist=False))
+    store = db.relationship('Seller')
+
 # Create database tables
 with app.app_context():
     db.create_all()
-
-# In-memory database for demonstration
-# users = {
-#     'students': [],
-#     'sellers': []
-# }
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -126,6 +131,7 @@ def register():
     
     return jsonify({"message": "Registration successful"}), 201
 
+# Update the login route to include student ID in the response
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
@@ -144,11 +150,13 @@ def login():
     if user.role == 'student':
         student = Student.query.filter_by(user_id=user.id).first()
         profile_data = {
+            'id': student.id,  # Include student ID
             'collegeId': student.college_id
         }
     elif user.role == 'seller':
         seller = Seller.query.filter_by(user_id=user.id).first()
         profile_data = {
+            'id': seller.id,  # Include seller ID
             'storeName': seller.store_name,
             'storeAddress': seller.store_address,
             'phoneNumber': seller.phone_number,
@@ -187,11 +195,13 @@ def check_auth():
         if user.role == 'student':
             student = Student.query.filter_by(user_id=user.id).first()
             profile_data = {
+                'id': student.id,  # Include student ID
                 'collegeId': student.college_id
             }
         elif user.role == 'seller':
             seller = Seller.query.filter_by(user_id=user.id).first()
             profile_data = {
+                'id': seller.id,  # Include seller ID
                 'storeName': seller.store_name,
                 'storeAddress': seller.store_address,
                 'phoneNumber': seller.phone_number,
@@ -216,18 +226,40 @@ def check_auth():
 # Product Routes
 @app.route('/api/products', methods=['GET'])
 def get_products():
-    products = Product.query.all()
+    # Get limit parameter (optional)
+    limit = request.args.get('limit', default=None, type=int)
+    
+    # Filter products by seller if the user is a seller
+    if 'user_id' in session and session['role'] == 'seller':
+        user = User.query.get(session['user_id'])
+        seller = Seller.query.filter_by(user_id=user.id).first()
+        
+        # Only show products belonging to this seller
+        products = Product.query.filter_by(seller_id=seller.id).all()
+    else:
+        # For students or non-authenticated users, show all products
+        products = Product.query.all()
+    
+    # Apply limit if provided
+    if limit:
+        products = products[:limit]
+        
     product_list = []
     
     for product in products:
         seller = Seller.query.get(product.seller_id)
+        image_url = None
+        if product.image_path:
+            # Use request.host_url to get the base URL
+            image_url = f"{request.host_url.rstrip('/')}/api/uploads/{product.image_path}"
+        
         product_list.append({
             "id": product.id,
             "name": product.name,
             "description": product.description,
             "price": product.price,
             "stock": product.stock,
-            "image": f"/api/uploads/{product.image_path}" if product.image_path else None,
+            "image": image_url,
             "seller": {
                 "id": seller.id,
                 "storeName": seller.store_name
@@ -253,12 +285,26 @@ def add_product():
     image_path = None
     if 'image' in request.files:
         file = request.files['image']
-        if file.filename:
-            filename = secure_filename(file.filename)
-            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-            unique_filename = f"{timestamp}_{filename}"
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
-            image_path = unique_filename
+        if file and file.filename:
+            try:
+                # Ensure uploads directory exists
+                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                
+                # Save the file with a unique name
+                filename = secure_filename(file.filename)
+                timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+                unique_filename = f"{timestamp}_{filename}"
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                file.save(file_path)
+                
+                # Verify the file was saved
+                if os.path.exists(file_path):
+                    print(f"File saved successfully at: {file_path}")
+                    image_path = unique_filename
+                else:
+                    print(f"Failed to save file at: {file_path}")
+            except Exception as e:
+                print(f"Error saving file: {str(e)}")
     
     new_product = Product(
         seller_id=seller.id,
@@ -272,6 +318,11 @@ def add_product():
     db.session.add(new_product)
     db.session.commit()
     
+    image_url = None
+    if new_product.image_path:
+        image_url = f"{request.host_url.rstrip('/')}/api/uploads/{new_product.image_path}"
+        print(f"Image URL created: {image_url}")
+    
     return jsonify({
         "message": "Product added successfully",
         "product": {
@@ -280,7 +331,7 @@ def add_product():
             "description": new_product.description,
             "price": new_product.price,
             "stock": new_product.stock,
-            "image": f"/api/uploads/{new_product.image_path}" if new_product.image_path else None
+            "image": image_url
         }
     }), 201
 
@@ -324,6 +375,10 @@ def update_product(product_id):
     
     db.session.commit()
     
+    image_url = None
+    if product.image_path:
+        image_url = f"{request.host_url.rstrip('/')}/api/uploads/{product.image_path}"
+    
     return jsonify({
         "message": "Product updated successfully",
         "product": {
@@ -332,7 +387,7 @@ def update_product(product_id):
             "description": product.description,
             "price": product.price,
             "stock": product.stock,
-            "image": f"/api/uploads/{product.image_path}" if product.image_path else None
+            "image": image_url
         }
     }), 200
 
@@ -364,7 +419,22 @@ def delete_product(product_id):
 
 @app.route('/api/uploads/<filename>')
 def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    """Serve uploaded files with proper headers"""
+    # Make the uploads folder accessible
+    try:
+        # Set proper CORS headers for image files
+        response = send_from_directory(os.path.abspath(app.config['UPLOAD_FOLDER']), filename)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Cache-Control'] = 'public, max-age=31536000'
+        # Add content type header if not already set
+        if 'Content-Type' not in response.headers:
+            # Try to guess the content type based on file extension
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
+                response.headers['Content-Type'] = f'image/{filename.split(".")[-1].lower()}'
+        return response
+    except Exception as e:
+        print(f"Error serving file {filename}: {str(e)}")
+        return jsonify({"error": f"Could not serve file: {str(e)}"}), 404
 
 # Seller Profile Routes
 @app.route('/api/seller/profile', methods=['PUT'])
@@ -402,43 +472,104 @@ def update_seller_profile():
         }
     }), 200
 
+# Store Routes
+@app.route('/api/stores', methods=['GET'])
+def get_stores():
+    # Get limit parameter (optional)
+    limit = request.args.get('limit', default=None, type=int)
+    
+    # Query all sellers
+    sellers = Seller.query.all()
+    
+    # Apply limit if provided
+    if limit:
+        sellers = sellers[:limit]
+    
+    stores_list = []
+    
+    for seller in sellers:
+        # Count products for this seller
+        products_count = Product.query.filter_by(seller_id=seller.id).count()
+        
+        stores_list.append({
+            "id": seller.id,
+            "name": seller.store_name,
+            "address": seller.store_address,
+            "workingDays": seller.working_days,
+            "openingTime": seller.opening_time,
+            "closingTime": seller.closing_time,
+            "productsCount": products_count
+        })
+    
+    return jsonify({"stores": stores_list}), 200
+
+@app.route('/api/stores/<int:store_id>', methods=['GET'])
+def get_store(store_id):
+    seller = Seller.query.get(store_id)
+    
+    if not seller:
+        return jsonify({"error": "Store not found"}), 404
+    
+    # Count products for this seller
+    products_count = Product.query.filter_by(seller_id=seller.id).count()
+    
+    store = {
+        "id": seller.id,
+        "name": seller.store_name,
+        "address": seller.store_address,
+        "workingDays": seller.working_days,
+        "openingTime": seller.opening_time,
+        "closingTime": seller.closing_time,
+        "productsCount": products_count
+    }
+    
+    return jsonify({"store": store}), 200
+
+@app.route('/api/stores/<int:store_id>/products', methods=['GET'])
+def get_store_products(store_id):
+    seller = Seller.query.get(store_id)
+    
+    if not seller:
+        return jsonify({"error": "Store not found"}), 404
+    
+    products = Product.query.filter_by(seller_id=seller.id).all()
+    product_list = []
+    
+    for product in products:
+        image_url = None
+        if product.image_path:
+            image_url = f"{request.host_url.rstrip('/')}/api/uploads/{product.image_path}"
+        
+        product_list.append({
+            "id": product.id,
+            "name": product.name,
+            "description": product.description,
+            "price": product.price,
+            "stock": product.stock,
+            "image": image_url,
+            "seller": {
+                "id": seller.id,
+                "storeName": seller.store_name
+            }
+        })
+    
+    return jsonify({"products": product_list}), 200
+
 # Cart Routes
-@app.route('/api/cart', methods=['GET'])
-def get_cart():
+@app.route('/api/cart/store', methods=['GET'])
+def get_cart_store():
     if 'user_id' not in session or session['role'] != 'student':
         return jsonify({"error": "Unauthorized"}), 401
     
     user = User.query.get(session['user_id'])
     student = Student.query.filter_by(user_id=user.id).first()
     
-    cart_items = CartItem.query.filter_by(student_id=student.id).all()
-    items = []
+    cart_store = CartStore.query.filter_by(student_id=student.id).first()
     
-    for item in cart_items:
-        product = Product.query.get(item.product_id)
-        seller = Seller.query.get(product.seller_id)
-        
-        items.append({
-            "id": item.id,
-            "product": {
-                "id": product.id,
-                "name": product.name,
-                "price": product.price,
-                "image": f"/api/uploads/{product.image_path}" if product.image_path else None
-            },
-            "quantity": item.quantity,
-            "seller": {
-                "storeName": seller.store_name
-            },
-            "subtotal": product.price * item.quantity
-        })
+    if not cart_store:
+        return jsonify({"storeId": None}), 200
     
-    total = sum(item["subtotal"] for item in items)
-    
-    return jsonify({
-        "items": items,
-        "total": total
-    }), 200
+    return jsonify({"storeId": cart_store.store_id}), 200
 
 @app.route('/api/cart', methods=['POST'])
 def add_to_cart():
@@ -452,6 +583,23 @@ def add_to_cart():
     product = Product.query.get(data['productId'])
     if not product:
         return jsonify({"error": "Product not found"}), 404
+    
+    # Check if cart has items from another store
+    cart_store = CartStore.query.filter_by(student_id=student.id).first()
+    
+    if cart_store and cart_store.store_id != product.seller_id:
+        # Clear the cart
+        CartItem.query.filter_by(student_id=student.id).delete()
+        
+        # Update the cart store
+        cart_store.store_id = product.seller_id
+    elif not cart_store:
+        # Create new cart store
+        cart_store = CartStore(
+            student_id=student.id,
+            store_id=product.seller_id
+        )
+        db.session.add(cart_store)
     
     # Check if product is already in cart
     cart_item = CartItem.query.filter_by(
@@ -474,6 +622,56 @@ def add_to_cart():
     db.session.commit()
     
     return jsonify({"message": "Product added to cart"}), 200
+
+@app.route('/api/cart', methods=['GET'])
+def get_cart():
+    if 'user_id' not in session or session['role'] != 'student':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.get(session['user_id'])
+    student = Student.query.filter_by(user_id=user.id).first()
+    
+    cart_items = CartItem.query.filter_by(student_id=student.id).all()
+    items = []
+    
+    # Get store information
+    cart_store = CartStore.query.filter_by(student_id=student.id).first()
+    store = None
+    
+    if cart_store:
+        seller = Seller.query.get(cart_store.store_id)
+        store = {
+            "id": seller.id,
+            "name": seller.store_name,
+            "address": seller.store_address
+        }
+    
+    for item in cart_items:
+        product = Product.query.get(item.product_id)
+        
+        image_url = None
+        if product.image_path:
+            image_url = f"{request.host_url.rstrip('/')}/api/uploads/{product.image_path}"
+        
+        items.append({
+            "id": item.id,
+            "product": {
+                "id": product.id,
+                "name": product.name,
+                "price": product.price,
+                "image": image_url
+            },
+            "quantity": item.quantity,
+            "subtotal": product.price * item.quantity
+        })
+    
+    total = sum(item["subtotal"] for item in items)
+    
+    return jsonify({
+        "items": items,
+        "store": store,
+        "total": total
+    }), 200
 
 @app.route('/api/cart/<int:item_id>', methods=['PUT'])
 def update_cart_item(item_id):
@@ -513,6 +711,28 @@ def remove_from_cart(item_id):
     db.session.commit()
     
     return jsonify({"message": "Item removed from cart"}), 200
+
+@app.route('/api/debug/uploads', methods=['GET'])
+def debug_uploads():
+    """Debug endpoint to list files in the uploads directory"""
+    if not os.path.exists(app.config['UPLOAD_FOLDER']):
+        return jsonify({"error": "Uploads directory does not exist"}), 404
+        
+    files = os.listdir(app.config['UPLOAD_FOLDER'])
+    file_info = []
+    
+    for filename in files:
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file_info.append({
+            "name": filename,
+            "size": os.path.getsize(file_path),
+            "url": f"{request.host_url.rstrip('/')}/api/uploads/{filename}"
+        })
+    
+    return jsonify({
+        "upload_dir": os.path.abspath(app.config['UPLOAD_FOLDER']),
+        "files": file_info
+    }), 200
 
 if __name__ == '__main__':
     app.run(debug=True)

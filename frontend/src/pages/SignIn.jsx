@@ -33,9 +33,9 @@ const SignIn = () => {
 
       // Redirect based on user role
       if (user.role === "student") {
-        navigate("/student")
+        navigate("/student") // Redirect to student dashboard
       } else if (user.role === "seller") {
-        navigate("/seller")
+        navigate("/seller") // Redirect to seller dashboard
       }
     } catch (error) {
       setError(error.message || "Invalid email or password")

@@ -1,27 +1,68 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useParams, useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import ImageWithFallback from "../../components/ImageWithFallback"
-import "./ProductList.css"
-// Add useNavigate import at the top
-import { useNavigate } from "react-router-dom"
+import "./StoreProducts.css"
 
-const ProductList = () => {
+const StoreProducts = () => {
+  const { storeId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const [store, setStore] = useState(null)
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [addingToCart, setAddingToCart] = useState({})
-  // Add cartStore state and checkCartStore function
   const [cartStore, setCartStore] = useState(null)
 
   useEffect(() => {
+    fetchStoreDetails()
     fetchProducts()
     checkCartStore()
-  }, [])
+  }, [storeId])
+
+  const fetchStoreDetails = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/stores/${storeId}`, {
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch store details")
+      }
+
+      const data = await response.json()
+      setStore(data.store)
+    } catch (error) {
+      setError(error.message || "Error fetching store details")
+      console.error("Error fetching store details:", error)
+    }
+  }
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`http://localhost:5000/api/stores/${storeId}/products`, {
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch products")
+      }
+
+      const data = await response.json()
+      console.log("Store products fetched:", data.products)
+      setProducts(data.products || [])
+    } catch (error) {
+      setError(error.message || "Error fetching products")
+      console.error("Error fetching products:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const checkCartStore = async () => {
     try {
@@ -38,33 +79,10 @@ const ProductList = () => {
     }
   }
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch("http://localhost:5000/api/products", {
-        credentials: "include",
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch products")
-      }
-
-      const data = await response.json()
-      console.log("Products fetched:", data.products)
-      setProducts(data.products || [])
-    } catch (error) {
-      setError(error.message || "Error fetching products")
-      console.error("Error fetching products:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Update the addToCart function to handle store switching
-  const addToCart = async (productId, sellerId) => {
+  const addToCart = async (productId) => {
     try {
       // If cart has items from another store, confirm with user
-      if (cartStore && cartStore !== sellerId) {
+      if (cartStore && cartStore !== Number.parseInt(storeId)) {
         const confirmChange = window.confirm(
           "Your cart contains items from another store. Adding this item will clear your current cart. Continue?",
         )
@@ -80,7 +98,7 @@ const ProductList = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ productId, quantity: 1 }),
+        body: JSON.stringify({ productId, quantity: 1, storeId }),
         credentials: "include",
       })
 
@@ -89,13 +107,10 @@ const ProductList = () => {
       }
 
       // Update cart store
-      setCartStore(sellerId)
+      setCartStore(Number.parseInt(storeId))
 
       // Show success message
       alert("Product added to cart!")
-
-      // Navigate to the store page
-      navigate(`/student/store/${sellerId}`)
     } catch (error) {
       setError(error.message || "Error adding to cart")
       console.error("Error adding to cart:", error)
@@ -107,17 +122,35 @@ const ProductList = () => {
   const filteredProducts = products.filter(
     (product) =>
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.seller.storeName.toLowerCase().includes(searchTerm.toLowerCase()),
+      product.description?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  return (
-    <div className="product-list-page">
+  if (!store && !loading) {
+    return (
       <div className="container">
-        <div className="page-header">
-          <h1>Browse Products</h1>
-          <p>Find groceries from local stores</p>
-        </div>
+        <div className="error-message">Store not found</div>
+        <button className="btn btn-primary" onClick={() => navigate("/student/stores")}>
+          Back to Stores
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="store-products-page">
+      <div className="container">
+        {store && (
+          <div className="store-header">
+            <h1>{store.name}</h1>
+            <p className="store-address">{store.address}</p>
+            <div className="store-info">
+              <span className="store-hours">
+                Hours: {store.openingTime} - {store.closingTime}
+              </span>
+              <span className="store-days">Days: {store.workingDays}</span>
+            </div>
+          </div>
+        )}
 
         <div className="search-bar">
           <input
@@ -151,13 +184,12 @@ const ProductList = () => {
                 </div>
                 <div className="product-details">
                   <h3>{product.name}</h3>
-                  <p className="product-seller">by {product.seller.storeName}</p>
                   {product.description && <p className="product-description">{product.description}</p>}
                   <p className="product-price">${product.price.toFixed(2)}</p>
                   <p className="product-stock">{product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}</p>
                   <button
                     className="btn btn-primary add-to-cart-btn"
-                    onClick={() => addToCart(product.id, product.seller.id)}
+                    onClick={() => addToCart(product.id)}
                     disabled={product.stock <= 0 || addingToCart[product.id]}
                   >
                     {addingToCart[product.id] ? "Adding..." : "Add to Cart"}
@@ -168,7 +200,7 @@ const ProductList = () => {
           </div>
         ) : (
           <div className="no-products">
-            {searchTerm ? "No products match your search." : "No products available yet."}
+            {searchTerm ? "No products match your search." : "No products available in this store yet."}
           </div>
         )}
       </div>
@@ -176,5 +208,5 @@ const ProductList = () => {
   )
 }
 
-export default ProductList
+export default StoreProducts
 

@@ -19,10 +19,18 @@ const Navbar = () => {
     navigate("/")
   }
 
+  // Determine home link based on user role
+  const getHomeLink = () => {
+    if (!user) return "/"
+    if (user.role === "student") return "/student"
+    if (user.role === "seller") return "/seller"
+    return "/"
+  }
+
   return (
     <nav className="navbar">
       <div className="container navbar-container">
-        <Link to="/" className="navbar-logo">
+        <Link to={getHomeLink()} className="navbar-logo">
           <span className="logo-text">Grocto</span>
         </Link>
 
@@ -32,7 +40,7 @@ const Navbar = () => {
 
         <ul className={isMenuOpen ? "nav-menu active" : "nav-menu"}>
           <li className="nav-item">
-            <Link to="/" className="nav-link" onClick={() => setIsMenuOpen(false)}>
+            <Link to={getHomeLink()} className="nav-link" onClick={() => setIsMenuOpen(false)}>
               Home
             </Link>
           </li>
@@ -70,12 +78,19 @@ const Navbar = () => {
                 </Link>
               </li>
               <li className="nav-item">
+                <Link to="/student/stores" className="nav-link" onClick={() => setIsMenuOpen(false)}>
+                  Stores
+                </Link>
+              </li>
+              <li className="nav-item">
                 <Link to="/student/cart" className="nav-link" onClick={() => setIsMenuOpen(false)}>
                   Cart
                 </Link>
               </li>
               <li className="nav-item">
-                <span className="nav-link user-name">Hi, {user.name}</span>
+                <span className="nav-link user-name">
+                  Hi, {user.name} (ID: {user.profile.id})
+                </span>
               </li>
               <li className="nav-item">
                 <button onClick={handleLogout} className="nav-link btn btn-outline">
@@ -102,7 +117,9 @@ const Navbar = () => {
                 </Link>
               </li>
               <li className="nav-item">
-                <span className="nav-link user-name">Hi, {user.name}</span>
+                <span className="nav-link user-name">
+                  Hi, {user.name} (ID: {user.profile.id})
+                </span>
               </li>
               <li className="nav-item">
                 <button onClick={handleLogout} className="nav-link btn btn-outline">
