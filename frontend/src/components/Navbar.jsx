@@ -1,32 +1,32 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { useAuth } from "../context/AuthContext"
-import NotificationCenter from "./NotificationCenter"
-import "./Navbar.css"
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import NotificationCenter from "./NotificationCenter";
+import "./Navbar.css";
 
 const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen)
-  }
+    setIsMenuOpen(!isMenuOpen);
+  };
 
   const handleLogout = async () => {
-    await logout()
-    navigate("/")
-  }
+    await logout();
+    navigate("/");
+  };
 
   // Determine home link based on user role
   const getHomeLink = () => {
-    if (!user) return "/"
-    if (user.role === "student") return "/student"
-    if (user.role === "seller") return "/seller"
-    return "/"
-  }
+    if (!user) return "/";
+    if (user.role === "student") return "/student";
+    if (user.role === "seller") return "/seller";
+    return "/";
+  };
 
   return (
     <nav className="navbar">
@@ -42,7 +42,11 @@ const Navbar = () => {
 
         <ul className={isMenuOpen ? "nav-menu active" : "nav-menu"}>
           <li className="nav-item">
-            <Link to={getHomeLink()} className="nav-link" onClick={() => setIsMenuOpen(false)}>
+            <Link
+              to={getHomeLink()}
+              className="nav-link"
+              onClick={() => setIsMenuOpen(false)}
+            >
               Home
             </Link>
           </li>
@@ -51,22 +55,38 @@ const Navbar = () => {
             // Not logged in
             <>
               <li className="nav-item">
-                <Link to="/#features" className="nav-link" onClick={() => setIsMenuOpen(false)}>
+                <Link
+                  to="/#features"
+                  className="nav-link"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   Features
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/#how-it-works" className="nav-link" onClick={() => setIsMenuOpen(false)}>
+                <Link
+                  to="/#how-it-works"
+                  className="nav-link"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   How It Works
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/signin" className="nav-link btn btn-outline" onClick={() => setIsMenuOpen(false)}>
+                <Link
+                  to="/signin"
+                  className="nav-link btn btn-outline"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   Sign In
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/signup" className="nav-link btn btn-primary" onClick={() => setIsMenuOpen(false)}>
+                <Link
+                  to="/signup"
+                  className="nav-link btn btn-primary"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   Sign Up
                 </Link>
               </li>
@@ -75,22 +95,38 @@ const Navbar = () => {
             // Student is logged in
             <>
               <li className="nav-item">
-                <Link to="/student/products" className="nav-link" onClick={() => setIsMenuOpen(false)}>
+                <Link
+                  to="/student/products"
+                  className="nav-link"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   Products
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/student/stores" className="nav-link" onClick={() => setIsMenuOpen(false)}>
+                <Link
+                  to="/student/stores"
+                  className="nav-link"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   Stores
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/student/orders" className="nav-link" onClick={() => setIsMenuOpen(false)}>
+                <Link
+                  to="/student/orders"
+                  className="nav-link"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   Orders
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/student/cart" className="nav-link cart-link" onClick={() => setIsMenuOpen(false)}>
+                <Link
+                  to="/student/cart"
+                  className="nav-link cart-link"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   <i className="fas fa-shopping-cart"></i>
                   <span>Cart</span>
                 </Link>
@@ -99,10 +135,19 @@ const Navbar = () => {
                 <NotificationCenter />
               </li>
               <li className="nav-item">
-                <span className="nav-link user-name">Hi, {user.name}</span>
+                <Link
+                  to="/student/profile"
+                  className="nav-link user-name"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Hi, {user.name}
+                </Link>
               </li>
               <li className="nav-item">
-                <button onClick={handleLogout} className="nav-link btn btn-outline">
+                <button
+                  onClick={handleLogout}
+                  className="nav-link btn btn-outline"
+                >
                   Logout
                 </button>
               </li>
@@ -111,22 +156,38 @@ const Navbar = () => {
             // Seller is logged in
             <>
               <li className="nav-item">
-                <Link to="/seller/inventory" className="nav-link" onClick={() => setIsMenuOpen(false)}>
+                <Link
+                  to="/seller/inventory"
+                  className="nav-link"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   Inventory
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/seller/delivery-slots" className="nav-link" onClick={() => setIsMenuOpen(false)}>
+                <Link
+                  to="/seller/delivery-slots"
+                  className="nav-link"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   Delivery Slots
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/seller/orders" className="nav-link" onClick={() => setIsMenuOpen(false)}>
+                <Link
+                  to="/seller/orders"
+                  className="nav-link"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   Orders
                 </Link>
               </li>
               <li className="nav-item">
-                <Link to="/seller/profile" className="nav-link" onClick={() => setIsMenuOpen(false)}>
+                <Link
+                  to="/seller/profile"
+                  className="nav-link"
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   Profile
                 </Link>
               </li>
@@ -137,7 +198,10 @@ const Navbar = () => {
                 <span className="nav-link user-name">Hi, {user.name}</span>
               </li>
               <li className="nav-item">
-                <button onClick={handleLogout} className="nav-link btn btn-outline">
+                <button
+                  onClick={handleLogout}
+                  className="nav-link btn btn-outline"
+                >
                   Logout
                 </button>
               </li>
@@ -146,8 +210,7 @@ const Navbar = () => {
         </ul>
       </div>
     </nav>
-  )
-}
+  );
+};
 
-export default Navbar
-
+export default Navbar;
