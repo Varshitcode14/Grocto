@@ -1,0 +1,136 @@
+.auth-section {
+    padding: 80px 0;
+    background-color: #f5f5f5;
+    min-height: calc(100vh - 160px); /* Accounting for navbar and footer */
+    display: flex;
+    align-items: center;
+  }
+  
+  .auth-container {
+    display: flex;
+    background-color: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  }
+  
+  .auth-form-container {
+    flex: 1;
+    padding: 40px;
+  }
+  
+  .auth-title {
+    font-size: 2rem;
+    color: #1e88e5;
+    margin-bottom: 30px;
+    text-align: center;
+  }
+  
+  .user-type-toggle {
+    display: flex;
+    margin-bottom: 30px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+    padding: 5px;
+  }
+  
+  .toggle-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-weight: 600;
+    color: #757575;
+    transition: all 0.3s ease;
+    border-radius: 3px;
+  }
+  
+  .toggle-btn.active {
+    background-color: #1e88e5;
+    color: white;
+  }
+  
+  .auth-form {
+    margin-bottom: 20px;
+  }
+  
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333333;
+  }
+  
+  .form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+  
+  .form-group input:focus {
+    border-color: #1e88e5;
+    outline: none;
+  }
+  
+  .forgot-password {
+    text-align: right;
+  }
+  
+  .forgot-link {
+    color: #1e88e5;
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+  
+  .auth-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.1rem;
+    margin-top: 10px;
+  }
+  
+  .auth-footer {
+    text-align: center;
+    margin-top: 20px;
+    color: #757575;
+  }
+  
+  .auth-link {
+    color: #1e88e5;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  
+  .auth-image {
+    flex: 1;
+    background-color: var(--primary-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+  }
+  
+  .auth-image img {
+    max-width: 100%;
+    border-radius: 10px;
+  }
+  
+  @media screen and (max-width: 960px) {
+    .auth-container {
+      flex-direction: column;
+    }
+  
+    .auth-image {
+      display: none;
+    }
+  }
+  
+  

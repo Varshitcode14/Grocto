@@ -1,12 +1,31 @@
-# React + Vite
+# Grocto - College Grocery Delivery System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Grocto is a web-based grocery delivery system tailored to the specific needs of college students, fostering convenience, affordability, and efficiency. This system connects Grocery Sellers (e.g., Radhika Supermarket, Old SC) with students, providing a centralized platform for ordering groceries and essential supplies.
 
-Currently, two official plugins are available:
+## Project Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+The project is divided into two main parts:
 
-## Expanding the ESLint configuration
+- **Frontend**: Built with Vite and React
+- **Backend**: Built with Flask
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Features
+
+- User authentication for both students and grocery sellers
+- Browse groceries from local stores
+- Place and track orders
+- Schedule deliveries
+- Student discounts and promotions
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v14 or higher)
+- Python (v3.8 or higher)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+
