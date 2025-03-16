@@ -1,6 +1,6 @@
 /* Hero Section */
 .hero {
-  background: linear-gradient(135deg, var(--accent-blue) 0%, var(--primary-blue) 100%);
+  background: linear-gradient(135deg, var(--accent-blue) 0%, var(--dark-blue) 100%);
   color: white;
   padding: 100px 0;
 }
@@ -54,7 +54,7 @@
 
 /* Features Section */
 .features {
-  background-color: var(--background);
+  background-color: var(--blue-bg-medium);
   padding: 80px 0;
 }
 
@@ -66,7 +66,7 @@
 }
 
 .feature-card {
-  background-color: var(--white);
+  background-color: var(--blue-card);
   border-radius: var(--border-radius);
   padding: 30px;
   box-shadow: var(--card-shadow);

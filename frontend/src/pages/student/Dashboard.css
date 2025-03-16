@@ -1,10 +1,11 @@
 .dashboard {
     padding: 40px 0;
     min-height: calc(100vh - 160px);
+    background-color: var(--blue-bg-light);
   }
   
   .welcome-banner {
-    background: linear-gradient(135deg, #64b5f6 0%, #1e88e5 100%);
+    background: linear-gradient(135deg, var(--accent-blue) 0%, var(--primary-blue) 100%);
     border-radius: 15px;
     padding: 40px;
     margin-bottom: 40px;
@@ -47,11 +48,11 @@
   }
   
   .dashboard-section {
-    background-color: white;
+    background-color: var(--blue-card);
     border-radius: 10px;
     padding: 25px;
     margin-bottom: 30px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--card-shadow);
   }
   
   .section-header {
@@ -139,7 +140,7 @@
   }
   
   .store-card {
-    background-color: #f9f9f9;
+    background-color: var(--blue-surface);
     border-radius: 10px;
     padding: 20px;
     text-decoration: none;
@@ -182,16 +183,17 @@
   }
   
   .product-card {
-    background-color: white;
+    background-color: var(--blue-card);
     border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--card-shadow);
     transition: transform 0.3s ease;
     border: 1px solid #f0f0f0;
   }
   
   .product-card:hover {
     transform: translateY(-5px);
+    box-shadow: var(--hover-shadow);
   }
   
   .product-image {
