@@ -51,6 +51,8 @@
   
   .nav-item {
     margin: 0 15px;
+    display: flex;
+    align-items: center;
   }
   
   .nav-link {

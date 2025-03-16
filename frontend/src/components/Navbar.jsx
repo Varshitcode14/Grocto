@@ -101,7 +101,7 @@ const Navbar = () => {
                   <span>Cart</span>
                 </Link>
               </li>
-              <li className="nav-item notification-item">
+              <li className="nav-item">
                 <NotificationCenter />
               </li>
               <li className="nav-item">
@@ -136,7 +136,7 @@ const Navbar = () => {
                   Profile
                 </Link>
               </li>
-              <li className="nav-item notification-item">
+              <li className="nav-item">
                 <NotificationCenter />
               </li>
               <li className="nav-item">
