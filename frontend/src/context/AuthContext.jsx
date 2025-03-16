@@ -66,14 +66,15 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify(userData),
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
+        const data = await response.json()
         throw new Error(data.error || "Registration failed")
       }
 
+      const data = await response.json()
       return data
     } catch (error) {
+      console.error("Registration error in context:", error)
       throw error
     }
   }

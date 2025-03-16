@@ -7,6 +7,7 @@ const Footer = () => {
       <div className="container footer-container">
         <div className="footer-logo">
           <Link to="/" className="logo-link">
+            <img src="/grocto-logo.svg" alt="Grocto" className="footer-logo-img" />
             <span className="footer-logo-text">Grocto</span>
           </Link>
           <p className="footer-tagline">Grocery delivery made easy for college students</p>

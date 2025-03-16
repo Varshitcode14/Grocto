@@ -12,10 +12,16 @@ import StoreList from "./pages/student/StoreList"
 import StoreProducts from "./pages/student/StoreProducts"
 import ProductList from "./pages/student/ProductList"
 import Cart from "./pages/student/Cart"
+import Checkout from "./pages/student/Checkout"
+import OrderConfirmation from "./pages/student/OrderConfirmation"
+import OrdersList from "./pages/student/OrdersList"
 import SellerDashboard from "./pages/seller/Dashboard"
 import InventoryManagement from "./pages/seller/InventoryManagement"
 import AddProduct from "./pages/seller/AddProduct"
 import ProfileSettings from "./pages/seller/ProfileSettings"
+import OrderManagement from "./pages/seller/OrderManagement"
+import OrderDetail from "./pages/seller/OrderDetail"
+import DeliverySlots from "./pages/seller/DeliverySlots"
 import Debug from "./pages/Debug"
 import Footer from "./components/Footer"
 import ProtectedRoute from "./components/ProtectedRoute"
@@ -84,6 +90,38 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/student/checkout"
+              element={
+                <ProtectedRoute role="student">
+                  <Checkout />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/order-confirmation/:orderId"
+              element={
+                <ProtectedRoute role="student">
+                  <OrderConfirmation />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/orders"
+              element={
+                <ProtectedRoute role="student">
+                  <OrdersList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/student/orders/:orderId"
+              element={
+                <ProtectedRoute role="student">
+                  <OrderConfirmation />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Seller Routes */}
             <Route
@@ -115,6 +153,30 @@ function App() {
               element={
                 <ProtectedRoute role="seller">
                   <ProfileSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/seller/orders"
+              element={
+                <ProtectedRoute role="seller">
+                  <OrderManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/seller/orders/:orderId"
+              element={
+                <ProtectedRoute role="seller">
+                  <OrderDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/seller/delivery-slots"
+              element={
+                <ProtectedRoute role="seller">
+                  <DeliverySlots />
                 </ProtectedRoute>
               }
             />

@@ -1,15 +1,21 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import "./Cart.css"
 
 const Cart = () => {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const [cartItems, setCartItems] = useState([])
   const [store, setStore] = useState(null)
-  const [total, setTotal] = useState(0)
+  const [summary, setSummary] = useState({
+    subtotal: 0,
+    gstAmount: 0,
+    deliveryFee: 0,
+    total: 0,
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [updating, setUpdating] = useState({})
@@ -32,7 +38,14 @@ const Cart = () => {
       const data = await response.json()
       setCartItems(data.items || [])
       setStore(data.store || null)
-      setTotal(data.total || 0)
+      setSummary(
+        data.summary || {
+          subtotal: 0,
+          gstAmount: 0,
+          deliveryFee: 0,
+          total: 0,
+        },
+      )
     } catch (error) {
       setError(error.message || "Error fetching cart")
       console.error("Error fetching cart:", error)
@@ -89,6 +102,10 @@ const Cart = () => {
     } finally {
       setUpdating((prev) => ({ ...prev, [itemId]: false }))
     }
+  }
+
+  const handleCheckout = () => {
+    navigate("/student/checkout")
   }
 
   return (
@@ -167,17 +184,25 @@ const Cart = () => {
               <h3>Order Summary</h3>
               <div className="summary-row">
                 <span>Subtotal</span>
-                <span>${total.toFixed(2)}</span>
+                <span>${summary.subtotal.toFixed(2)}</span>
               </div>
+              {summary.gstAmount > 0 && (
+                <div className="summary-row">
+                  <span>GST ({store.gstPercentage}%)</span>
+                  <span>${summary.gstAmount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="summary-row">
                 <span>Delivery Fee</span>
-                <span>$2.99</span>
+                <span>${summary.deliveryFee.toFixed(2)}</span>
               </div>
               <div className="summary-total">
                 <span>Total</span>
-                <span>${(total + 2.99).toFixed(2)}</span>
+                <span>${summary.total.toFixed(2)}</span>
               </div>
-              <button className="btn btn-primary checkout-btn">Proceed to Checkout</button>
+              <button className="btn btn-primary checkout-btn" onClick={handleCheckout}>
+                Proceed to Checkout
+              </button>
             </div>
           </div>
         ) : (

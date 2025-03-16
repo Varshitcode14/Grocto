@@ -1,5 +1,5 @@
 .footer {
-    background-color: #1565c0;
+    background-color: var(--dark-blue);
     color: white;
     padding-top: 60px;
     margin-top: auto;
@@ -59,6 +59,7 @@
     font-size: 1.2rem;
     margin-bottom: 20px;
     color: white;
+    font-weight: 600;
   }
   
   .footer-links-list {
@@ -74,6 +75,7 @@
     color: rgba(255, 255, 255, 0.8);
     text-decoration: none;
     transition: color 0.3s ease;
+    font-size: 0.95rem;
   }
   
   .footer-links-list a:hover {

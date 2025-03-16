@@ -84,7 +84,12 @@ const SignUp = () => {
       await register(userData)
       navigate("/signin")
     } catch (error) {
-      setError(error.message || "Registration failed")
+      console.error("Registration error:", error)
+      if (error.message && error.message.includes("already registered")) {
+        setError("This email is already registered. Please use a different email or sign in.")
+      } else {
+        setError(error.message || "Registration failed. Please try again.")
+      }
     } finally {
       setLoading(false)
     }
