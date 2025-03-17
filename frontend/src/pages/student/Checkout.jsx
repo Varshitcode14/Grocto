@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
-import { useModal } from "../../context/ModalContext"
 import ImageWithFallback from "../../components/ImageWithFallback"
 import "./Checkout.css"
+import { useModal } from "../../context/ModalContext"
 
 const Checkout = () => {
   const navigate = useNavigate()
@@ -68,7 +68,7 @@ const Checkout = () => {
         total: data.summary.subtotal, // Will be updated when slot is selected
       })
     } catch (error) {
-      showError("Error", error.message || "Error fetching cart")
+      setError(error.message || "Error fetching cart")
       console.error("Error fetching cart:", error)
     } finally {
       setLoading(false)
@@ -94,6 +94,110 @@ const Checkout = () => {
     } catch (error) {
       console.error("Error fetching saved addresses:", error)
     }
+  }
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      showError("Location Error", "Geolocation is not supported by your browser")
+      return
+    }
+
+    setIsAddingNewAddress(true)
+    setFormData({
+      ...formData,
+      deliveryAddressId: "new",
+    })
+
+    // Request high accuracy
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords
+
+          // Use OpenStreetMap's Nominatim service with more detailed parameters
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1&zoom=18&namedetails=1`,
+            {
+              headers: {
+                "Accept-Language": "en-US,en;q=0.9",
+              },
+            },
+          )
+
+          if (!response.ok) {
+            throw new Error("Failed to fetch address")
+          }
+
+          const data = await response.json()
+
+          // Format the address from the response with more detail
+          let formattedAddress = ""
+
+          if (data.address) {
+            const addr = data.address
+            const addressParts = []
+
+            // Build detailed address string from components
+            if (addr.house_number) addressParts.push(addr.house_number)
+            if (addr.building) addressParts.push(addr.building)
+            if (addr.road) addressParts.push(addr.road)
+            if (addr.neighbourhood) addressParts.push(addr.neighbourhood)
+            if (addr.suburb) addressParts.push(addr.suburb)
+            if (addr.city || addr.town || addr.village) addressParts.push(addr.city || addr.town || addr.village)
+            if (addr.county) addressParts.push(addr.county)
+            if (addr.state_district) addressParts.push(addr.state_district)
+            if (addr.state) addressParts.push(addr.state)
+            if (addr.postcode) addressParts.push(addr.postcode)
+
+            formattedAddress = addressParts.join(", ")
+          }
+
+          // If we couldn't build a detailed address, use the display name
+          if (!formattedAddress) {
+            formattedAddress = data.display_name
+          }
+
+          // Add coordinates for extra precision
+          formattedAddress += ` (${latitude.toFixed(6)}, ${longitude.toFixed(6)})`
+
+          // Update the form data
+          setFormData({
+            ...formData,
+            newDeliveryAddress: formattedAddress,
+          })
+
+          showSuccess("Address Found", "Your precise location has been detected")
+        } catch (error) {
+          console.error("Error getting address from coordinates:", error)
+          showError("Location Error", "Failed to get your address. Please enter it manually.")
+        }
+      },
+      (error) => {
+        console.error("Geolocation error:", error)
+        let errorMessage = "Failed to get your location"
+
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = "You denied the request for geolocation"
+            break
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = "Location information is unavailable"
+            break
+          case error.TIMEOUT:
+            errorMessage = "The request to get your location timed out"
+            break
+        }
+
+        showError("Location Error", errorMessage)
+      },
+      options, // Use the high accuracy options
+    )
   }
 
   const handleChange = (e) => {
@@ -144,6 +248,7 @@ const Checkout = () => {
       // Check if interval is at least 1 hour
       if (endMinutes - startMinutes < 60) {
         showWarning("Invalid Time Range", "Delivery time interval must be at least 1 hour")
+        setError("Delivery time interval must be at least 1 hour")
         return
       }
 
@@ -176,14 +281,8 @@ const Checkout = () => {
           total: prev.subtotal + matchingSlot.deliveryFee,
         }))
       } else {
-        showWarning(
-          "Invalid Time Range",
-          <div>
-            <p>Selected time does not match any available delivery slots.</p>
-            <p>Please select a time within one of the available slots.</p>
-          </div>,
-        )
-
+        showWarning("Invalid Time Range", "Selected time does not match any available delivery slots")
+        setError("Selected time does not match any available delivery slots")
         setFormData((prev) => ({
           ...prev,
           selectedSlotId: null,
@@ -219,13 +318,7 @@ const Checkout = () => {
     }
 
     if (!formData.selectedSlotId) {
-      showError(
-        "Invalid Selection",
-        <div>
-          <p>Selected time does not match any available delivery slots.</p>
-          <p>Please select a time within one of the available slots.</p>
-        </div>,
-      )
+      showError("Invalid Selection", "Selected time does not match any available delivery slots")
       return
     }
 
@@ -257,20 +350,10 @@ const Checkout = () => {
       }
 
       const data = await response.json()
+      showSuccess("Order Placed", "Your order has been placed successfully!")
 
-      showSuccess(
-        "Order Placed Successfully",
-        <div>
-          <p>Your order has been placed successfully!</p>
-          <p>Order ID: #{data.orderId}</p>
-          <p>You will be redirected to the order confirmation page.</p>
-        </div>,
-      )
-
-      // Navigate to order confirmation page after a short delay
-      setTimeout(() => {
-        navigate(`/student/order-confirmation/${data.orderId}`)
-      }, 2000)
+      // Navigate to order confirmation page
+      navigate(`/student/order-confirmation/${data.orderId}`)
     } catch (error) {
       showError("Order Failed", error.message || "Error placing order")
       console.error("Error placing order:", error)
@@ -351,6 +434,9 @@ const Checkout = () => {
                   {isAddingNewAddress && (
                     <div className="form-group">
                       <label htmlFor="newDeliveryAddress">New Delivery Address</label>
+                      <button type="button" className="btn btn-outline location-btn" onClick={handleGetCurrentLocation}>
+                        <i className="fas fa-map-marker-alt"></i> Use My Current Location
+                      </button>
                       <textarea
                         id="newDeliveryAddress"
                         name="newDeliveryAddress"

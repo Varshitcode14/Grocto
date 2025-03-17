@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Link } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import { formatToRelativeTime } from "../utils/dateUtils"
 import "./NotificationCenter.css"
 
 const NotificationCenter = () => {
@@ -80,6 +81,22 @@ const NotificationCenter = () => {
     setIsOpen(!isOpen)
     if (!isOpen) {
       fetchNotifications()
+      // Make sure the panel is visible within the viewport
+      setTimeout(() => {
+        if (notificationRef.current) {
+          const panel = notificationRef.current.querySelector(".notification-panel")
+          if (panel) {
+            const rect = panel.getBoundingClientRect()
+            if (rect.right > window.innerWidth) {
+              panel.style.right = "0"
+              panel.style.left = "auto"
+            }
+            if (rect.bottom > window.innerHeight) {
+              panel.style.maxHeight = `${window.innerHeight - rect.top - 20}px`
+            }
+          }
+        }
+      }, 0)
     }
   }
 
@@ -99,27 +116,6 @@ const NotificationCenter = () => {
       setUnreadCount((prev) => Math.max(0, prev - 1))
     } catch (error) {
       console.error("Error marking notification as read:", error)
-    }
-  }
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now - date
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMins / 60)
-    const diffDays = Math.floor(diffHours / 24)
-
-    if (diffMins < 1) {
-      return "Just now"
-    } else if (diffMins < 60) {
-      return `${diffMins} min${diffMins > 1 ? "s" : ""} ago`
-    } else if (diffHours < 24) {
-      return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`
-    } else if (diffDays < 7) {
-      return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`
-    } else {
-      return date.toLocaleDateString()
     }
   }
 
@@ -175,7 +171,7 @@ const NotificationCenter = () => {
                     <div className="notification-content">
                       <h4 className="notification-title">{notification.title}</h4>
                       <p className="notification-message">{notification.message}</p>
-                      <span className="notification-time">{formatDate(notification.createdAt)}</span>
+                      <span className="notification-time">{formatToRelativeTime(notification.createdAt)}</span>
                     </div>
                   </Link>
                 </div>

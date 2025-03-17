@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
+import { formatToIST } from "../../utils/dateUtils"
 import "./OrdersList.css"
 
 const OrdersList = () => {
@@ -34,15 +35,6 @@ const OrdersList = () => {
     } finally {
       setLoading(false)
     }
-  }
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
   }
 
   const getStatusBadgeClass = (status) => {
@@ -83,7 +75,7 @@ const OrdersList = () => {
                 <div className="order-header">
                   <div className="order-info">
                     <h3>Order #{order.id}</h3>
-                    <p className="order-date">{formatDate(order.orderDate)}</p>
+                    <p className="order-date">{formatToIST(order.orderDate)}</p>
                   </div>
                   <div className={`order-status ${getStatusBadgeClass(order.status)}`}>
                     {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
@@ -104,7 +96,7 @@ const OrdersList = () => {
                   {order.estimatedDeliveryTime && (
                     <div className="order-delivery-time">
                       <span className="detail-label">Estimated Delivery:</span>
-                      <span className="detail-value">{formatDate(order.estimatedDeliveryTime)}</span>
+                      <span className="detail-value">{formatToIST(order.estimatedDeliveryTime)}</span>
                     </div>
                   )}
                 </div>

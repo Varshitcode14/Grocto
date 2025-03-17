@@ -54,7 +54,7 @@
   max-height: 400px;
   background-color: white;
   border-radius: var(--border-radius);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
   z-index: 1000;
   overflow: hidden;
   display: flex;
@@ -85,6 +85,7 @@
 .notification-list {
   overflow-y: auto;
   max-height: 300px;
+  scrollbar-width: thin;
 }
 
 .notification-item {
@@ -92,6 +93,7 @@
   border-bottom: 1px solid #f5f5f5;
   cursor: pointer;
   transition: background-color 0.2s;
+  word-break: break-word;
 }
 
 .notification-item:hover {
@@ -123,6 +125,7 @@
   margin: 0 0 5px 0;
   font-size: 0.9rem;
   color: var(--text-light);
+  line-height: 1.4;
 }
 
 .notification-time {
