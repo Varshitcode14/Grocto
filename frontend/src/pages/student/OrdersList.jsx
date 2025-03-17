@@ -19,19 +19,33 @@ const OrdersList = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true)
+      setError("")
+
+      console.log("Fetching orders...")
       const response = await fetch("http://localhost:5000/api/orders", {
+        method: "GET",
         credentials: "include",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        mode: "cors",
       })
 
+      console.log("Response status:", response.status)
+
       if (!response.ok) {
-        throw new Error("Failed to fetch orders")
+        const errorText = await response.text()
+        console.error("Error response:", errorText)
+        throw new Error(`Failed to fetch orders: ${response.status} ${response.statusText}`)
       }
 
       const data = await response.json()
+      console.log("Orders data:", data)
       setOrders(data.orders || [])
     } catch (error) {
-      setError(error.message || "Error fetching orders")
       console.error("Error fetching orders:", error)
+      setError(error.message || "Error fetching orders")
     } finally {
       setLoading(false)
     }
@@ -64,7 +78,14 @@ const OrdersList = () => {
           <p>Track and manage your orders</p>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message">
+            <p>{error}</p>
+            <button className="btn btn-primary mt-3" onClick={fetchOrders}>
+              Try Again
+            </button>
+          </div>
+        )}
 
         {loading ? (
           <div className="loading">Loading orders...</div>

@@ -17,7 +17,8 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 # Ensure upload directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}}, supports_credentials=True)
+# Simple CORS configuration
+CORS(app, origins="http://localhost:5173", supports_credentials=True)
 
 db.init_app(app)
 bcrypt = Bcrypt(app)
@@ -25,6 +26,14 @@ bcrypt = Bcrypt(app)
 # Create database tables
 with app.app_context():
     db.create_all()
+
+# Add a custom error handler to ensure CORS headers are applied
+@app.errorhandler(Exception)
+def handle_error(e):
+    print(f"Error in request: {str(e)}")
+    response = jsonify({"error": str(e)})
+    response.status_code = 500
+    return response
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -1252,61 +1261,65 @@ def create_order():
 
 @app.route('/api/orders', methods=['GET'])
 def get_orders():
-    if 'user_id' not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    user = User.query.get(session['user_id'])
-    
-    if user.role == 'student':
-        student = Student.query.filter_by(user_id=user.id).first()
-        orders = Order.query.filter_by(student_id=student.id).order_by(Order.order_date.desc()).all()
-    elif user.role == 'seller':
-        seller = Seller.query.filter_by(user_id=user.id).first()
-        orders = Order.query.filter_by(seller_id=seller.id).order_by(Order.order_date.desc()).all()
-    else:
-        return jsonify({"error": "Invalid role"}), 400
-    
-    order_list = []
-    
-    for order in orders:
-        # Get student or seller info
-        if user.role == 'seller':
-            student = Student.query.get(order.student_id)
-            student_user = User.query.get(student.user_id)
-            customer_name = student_user.name
+    try:
+        if 'user_id' not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+        
+        user = User.query.get(session['user_id'])
+        
+        if user.role == 'student':
+            student = Student.query.filter_by(user_id=user.id).first()
+            orders = Order.query.filter_by(student_id=student.id).order_by(Order.order_date.desc()).all()
+        elif user.role == 'seller':
+            seller = Seller.query.filter_by(user_id=user.id).first()
+            orders = Order.query.filter_by(seller_id=seller.id).order_by(Order.order_date.desc()).all()
         else:
-            seller = Seller.query.get(order.seller_id)
-            store_name = seller.store_name
+            return jsonify({"error": "Invalid role"}), 400
         
-        # Format delivery slot for display
-        delivery_slot = f"{order.delivery_start_time} - {order.delivery_end_time}"
+        order_list = []
         
-        order_data = {
-            "id": order.id,
-            "orderDate": order.order_date.isoformat(),
-            "deliveryStartTime": order.delivery_start_time,
-            "deliveryEndTime": order.delivery_end_time,
-            "deliverySlot": order.delivery_slot,
-            "status": order.status,
-            "subtotal": order.subtotal,
-            "deliveryFee": order.delivery_fee,
-            "totalAmount": order.total_amount
-        }
+        for order in orders:
+            # Get student or seller info
+            if user.role == 'seller':
+                student = Student.query.get(order.student_id)
+                student_user = User.query.get(student.user_id)
+                customer_name = student_user.name
+            else:
+                seller = Seller.query.get(order.seller_id)
+                store_name = seller.store_name
+            
+            # Format delivery slot for display
+            delivery_slot = f"{order.delivery_start_time} - {order.delivery_end_time}"
+            
+            order_data = {
+                "id": order.id,
+                "orderDate": order.order_date.isoformat(),
+                "deliveryStartTime": order.delivery_start_time,
+                "deliveryEndTime": order.delivery_end_time,
+                "deliverySlot": delivery_slot,
+                "status": order.status,
+                "subtotal": order.subtotal,
+                "deliveryFee": order.delivery_fee,
+                "totalAmount": order.total_amount
+            }
+            
+            if user.role == 'seller':
+                order_data["customerName"] = customer_name
+            else:
+                order_data["storeName"] = store_name
+            
+            if order.estimated_delivery_time:
+                order_data["estimatedDeliveryTime"] = order.estimated_delivery_time.isoformat()
+            
+            order_list.append(order_data)
         
-        if user.role == 'seller':
-            order_data["customerName"] = customer_name
-        else:
-            order_data["storeName"] = store_name
+        # For debugging
+        print(f"Returning {len(order_list)} orders for {user.role} {user.name}")
         
-        if order.estimated_delivery_time:
-            order_data["estimatedDeliveryTime"] = order.estimated_delivery_time.isoformat()
-        
-        order_list.append(order_data)
-    
-    # For debugging
-    print(f"Returning {len(order_list)} orders for {user.role} {user.name}")
-    
-    return jsonify({"orders": order_list}), 200
+        return jsonify({"orders": order_list}), 200
+    except Exception as e:
+        print(f"Error in get_orders: {str(e)}")
+        return jsonify({"error": f"Failed to fetch orders: {str(e)}"}), 500
 
 @app.route('/api/orders/<int:order_id>', methods=['GET'])
 def get_order(order_id):
@@ -1938,6 +1951,7 @@ def delete_offer(offer_id):
     if 'user_id' not in session or session['role'] != 'seller':
         return jsonify({"error": "Unauthorized"}), 401
     
+    data = request.json
     user = User.query.get(session['user_id'])
     seller = Seller.query.filter_by(user_id=user.id).first()
     

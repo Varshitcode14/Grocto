@@ -738,6 +738,20 @@ def get_cart():
                 "endTime": slot.end_time,
                 "deliveryFee": slot.delivery_fee
             })
+        
+        # Get active offers for this store
+        ist_now = datetime.now(pytz.timezone('Asia/Kolkata')).date()
+        active_offers = Offer.query.filter(
+            Offer.seller_id == seller.id,
+            Offer.starting_date <= ist_now,
+            Offer.closing_date >= ist_now
+        ).all()
+    else:
+        active_offers = []
+    
+    # Calculate original subtotal before discounts
+    original_subtotal = 0
+    total_discount = 0
     
     for item in cart_items:
         product = Product.query.get(item.product_id)
@@ -746,19 +760,81 @@ def get_cart():
         if product.image_path:
             image_url = f"{request.host_url.rstrip('/')}/api/uploads/{product.image_path}"
         
+        # Calculate original price
+        original_price = product.price
+        original_item_subtotal = original_price * item.quantity
+        original_subtotal += original_item_subtotal
+        
+        # Initialize discount variables
+        applied_offer = None
+        discount_amount = 0
+        discounted_price = original_price
+        
+        # Check if any offers apply to this product
+        if active_offers:
+            for offer in active_offers:
+                # Check if offer has reached its limit
+                if offer.offer_limit > 0 and offer.usage_count >= offer.offer_limit:
+                    continue
+                
+                # Check if cart subtotal meets minimum purchase requirement
+                if original_subtotal < offer.min_purchase:
+                    continue
+                
+                # Check if offer applies to this product
+                applicable_products = offer.applicable_products
+                if applicable_products != 'all':
+                    try:
+                        applicable_product_ids = json.loads(applicable_products)
+                        if product.id not in applicable_product_ids:
+                            continue
+                    except:
+                        continue
+                
+                # Calculate discount
+                if offer.discount_type == 'percentage':
+                    current_discount = (original_price * offer.amount) / 100
+                else:  # fixed amount
+                    current_discount = offer.amount
+                
+                # Apply the best offer (highest discount)
+                if current_discount > discount_amount:
+                    discount_amount = current_discount
+                    applied_offer = offer
+        
+        # Apply discount if any
+        if discount_amount > 0:
+            discounted_price = max(0, original_price - discount_amount)
+            item_discount = discount_amount * item.quantity
+            total_discount += item_discount
+        
+        # Calculate final subtotal for this item
+        item_subtotal = discounted_price * item.quantity
+        
         items.append({
             "id": item.id,
             "product": {
                 "id": product.id,
                 "name": product.name,
-                "price": product.price,
+                "price": original_price,
                 "image": image_url
             },
             "quantity": item.quantity,
-            "subtotal": product.price * item.quantity
+            "originalSubtotal": original_item_subtotal,
+            "discount": discount_amount > 0,
+            "discountAmount": discount_amount,
+            "discountedPrice": discounted_price,
+            "subtotal": item_subtotal,
+            "appliedOffer": {
+                "id": applied_offer.id,
+                "title": applied_offer.title,
+                "discountType": applied_offer.discount_type,
+                "amount": applied_offer.amount
+            } if applied_offer else None
         })
     
-    subtotal = sum(item["subtotal"] for item in items)
+    # Calculate final subtotal after discounts
+    subtotal = original_subtotal - total_discount
     
     # We'll calculate delivery fee during checkout based on selected slot
     delivery_fee = 0
@@ -771,6 +847,8 @@ def get_cart():
         "store": store,
         "deliverySlots": delivery_slots,
         "summary": {
+            "originalSubtotal": original_subtotal,
+            "totalDiscount": total_discount,
             "subtotal": subtotal,
             "deliveryFee": delivery_fee,
             "total": total
@@ -1012,14 +1090,21 @@ def create_order():
     if not delivery_slot:
         return jsonify({"error": "Selected delivery time does not match any available slots"}), 400
     
-    # Calculate order totals
-    subtotal = sum(item.product.price * item.quantity for item in cart_items)
+    # Get active offers for this store
+    ist_now = datetime.now(pytz.timezone('Asia/Kolkata')).date()
+    active_offers = Offer.query.filter(
+        Offer.seller_id == seller.id,
+        Offer.starting_date <= ist_now,
+        Offer.closing_date >= ist_now
+    ).all()
     
-    # Get delivery fee from the slot
-    delivery_fee = delivery_slot.delivery_fee
+    # Calculate order totals with discounts
+    original_subtotal = 0
+    subtotal_after_discount = 0
+    total_discount = 0
     
-    # Calculate total
-    total_amount = subtotal + delivery_fee
+    # Track which offers were used
+    used_offers = set()
     
     try:
         # Create new order
@@ -1029,26 +1114,93 @@ def create_order():
             delivery_start_time=delivery_start_time,
             delivery_end_time=delivery_end_time,
             delivery_address=data['deliveryAddress'],
-            subtotal=subtotal,
-            delivery_fee=delivery_fee,
-            total_amount=total_amount,
+            subtotal=0,  # Will update after calculating discounts
+            delivery_fee=delivery_slot.delivery_fee,
+            total_amount=0,  # Will update after calculating discounts
             status="pending"
         )
         
         db.session.add(new_order)
-        db.session.commit()
+        db.session.flush()  # Get the order ID without committing
         
-        # Create order items
+        # Create order items with discount information
         for cart_item in cart_items:
             product = Product.query.get(cart_item.product_id)
+            original_price = product.price
+            original_item_subtotal = original_price * cart_item.quantity
+            original_subtotal += original_item_subtotal
+            
+            # Initialize discount variables
+            applied_offer = None
+            discount_amount = 0
+            discounted_price = original_price
+            
+            # Check if any offers apply to this product
+            if active_offers:
+                for offer in active_offers:
+                    # Check if offer has reached its limit
+                    if offer.offer_limit > 0 and offer.usage_count >= offer.offer_limit:
+                        continue
+                    
+                    # Check if cart subtotal meets minimum purchase requirement
+                    if original_subtotal < offer.min_purchase:
+                        continue
+                    
+                    # Check if offer applies to this product
+                    applicable_products = offer.applicable_products
+                    if applicable_products != 'all':
+                        try:
+                            applicable_product_ids = json.loads(applicable_products)
+                            if product.id not in applicable_product_ids:
+                                continue
+                        except:
+                            continue
+                    
+                    # Calculate discount
+                    if offer.discount_type == 'percentage':
+                        current_discount = (original_price * offer.amount) / 100
+                    else:  # fixed amount
+                        current_discount = offer.amount
+                    
+                    # Apply the best offer (highest discount)
+                    if current_discount > discount_amount:
+                        discount_amount = current_discount
+                        applied_offer = offer
+            
+            # Apply discount if any
+            if discount_amount > 0:
+                discounted_price = max(0, original_price - discount_amount)
+                item_discount = discount_amount * cart_item.quantity
+                total_discount += item_discount
+                
+                # Track which offer was used
+                if applied_offer:
+                    used_offers.add(applied_offer.id)
+            
+            # Calculate final subtotal for this item
+            item_subtotal = discounted_price * cart_item.quantity
+            subtotal_after_discount += item_subtotal
+            
+            # Create order item with discount information
+            discount_info = None
+            if applied_offer:
+                discount_info = json.dumps({
+                    "offerId": applied_offer.id,
+                    "offerTitle": applied_offer.title,
+                    "discountType": applied_offer.discount_type,
+                    "discountAmount": discount_amount,
+                    "originalPrice": original_price,
+                    "discountedPrice": discounted_price
+                })
             
             order_item = OrderItem(
                 order_id=new_order.id,
                 product_id=product.id,
                 product_name=product.name,
-                product_price=product.price,
+                product_price=discounted_price,  # Store the discounted price
                 quantity=cart_item.quantity,
-                subtotal=product.price * cart_item.quantity
+                subtotal=item_subtotal,
+                discount_info=discount_info  # Store discount information
             )
             
             db.session.add(order_item)
@@ -1057,6 +1209,16 @@ def create_order():
             product.stock -= cart_item.quantity
             if product.stock < 0:
                 product.stock = 0
+        
+        # Update order with final totals
+        new_order.subtotal = subtotal_after_discount
+        new_order.total_amount = subtotal_after_discount + delivery_slot.delivery_fee
+        
+        # Update usage count for used offers
+        for offer_id in used_offers:
+            offer = Offer.query.get(offer_id)
+            if offer:
+                offer.usage_count += 1
         
         # Create notification for seller
         seller_user = User.query.get(seller.user_id)
@@ -1124,7 +1286,7 @@ def get_orders():
             "orderDate": order.order_date.isoformat(),
             "deliveryStartTime": order.delivery_start_time,
             "deliveryEndTime": order.delivery_end_time,
-            "deliverySlot": delivery_slot,
+            "deliverySlot": order.delivery_slot,
             "status": order.status,
             "subtotal": order.subtotal,
             "deliveryFee": order.delivery_fee,
@@ -1684,14 +1846,6 @@ def create_offer():
     # Prepare applicable products
     applicable_products = data.get('applicableProducts', 'all')
     if applicable_products != 'all':
-        # Verify that all product IDs belong to this seller
-        if isinstance(applicable_products, list):
-            for product_id in applicable_products:
-                product = Product.query.get(product_id)
-                if not product or product.seller_id != seller.id:
-                    return jsonify({"error": f"Invalid product ID: {product_id}"}), 400
-        
-        # Convert to JSON string for storage
         applicable_products = json.dumps(applicable_products)
     
     # Create new offer
@@ -1754,17 +1908,8 @@ def update_offer(offer_id):
     
     if 'applicableProducts' in data:
         applicable_products = data['applicableProducts']
-        
-        # Verify that all product IDs belong to this seller if specific products are selected
-        if applicable_products != 'all' and isinstance(applicable_products, list):
-            for product_id in applicable_products:
-                product = Product.query.get(product_id)
-                if not product or product.seller_id != seller.id:
-                    return jsonify({"error": f"Invalid product ID: {product_id}"}), 400
-            
-            # Convert to JSON string for storage
+        if applicable_products != 'all':
             applicable_products = json.dumps(applicable_products)
-        
         offer.applicable_products = applicable_products
     
     if 'offerLimit' in data:

@@ -364,3 +364,30 @@
   }
 }
 
+.required-field {
+  color: #e53935;
+  margin-left: 4px;
+}
+
+.input-error {
+  border-color: #e53935 !important;
+  background-color: rgba(229, 57, 53, 0.05);
+}
+
+/* Add a subtle animation to draw attention to unfilled required fields */
+@keyframes pulse-border {
+  0% {
+    box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 4px rgba(229, 57, 53, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(229, 57, 53, 0);
+  }
+}
+
+.form-group input:invalid:focus {
+  animation: pulse-border 1.5s infinite;
+}
+

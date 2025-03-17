@@ -316,8 +316,9 @@ const Checkout = () => {
       return
     }
 
+    // Specific validation for delivery time
     if (!formData.deliveryStartTime || !formData.deliveryEndTime) {
-      showError("Missing Information", "Please select delivery time")
+      showError("Missing Information", "Please select both delivery start and end times")
       return
     }
 
@@ -469,7 +470,9 @@ const Checkout = () => {
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label htmlFor="deliveryStartTime">Delivery Start Time</label>
+                      <label htmlFor="deliveryStartTime">
+                        Delivery Start Time <span className="required-field">*</span>
+                      </label>
                       <input
                         type="time"
                         id="deliveryStartTime"
@@ -477,11 +480,14 @@ const Checkout = () => {
                         value={formData.deliveryStartTime}
                         onChange={handleTimeChange}
                         required
+                        className={!formData.deliveryStartTime ? "input-error" : ""}
                       />
                     </div>
 
                     <div className="form-group">
-                      <label htmlFor="deliveryEndTime">Delivery End Time</label>
+                      <label htmlFor="deliveryEndTime">
+                        Delivery End Time <span className="required-field">*</span>
+                      </label>
                       <input
                         type="time"
                         id="deliveryEndTime"
@@ -489,6 +495,7 @@ const Checkout = () => {
                         value={formData.deliveryEndTime}
                         onChange={handleTimeChange}
                         required
+                        className={!formData.deliveryEndTime ? "input-error" : ""}
                       />
                     </div>
                   </div>
@@ -592,7 +599,13 @@ const Checkout = () => {
                   >
                     Back to Cart
                   </button>
-                  <button type="submit" className="btn btn-primary" disabled={processing || !formData.selectedSlotId}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={
+                      processing || !formData.selectedSlotId || !formData.deliveryStartTime || !formData.deliveryEndTime
+                    }
+                  >
                     {processing ? "Processing..." : "Place Order"}
                   </button>
                 </div>
