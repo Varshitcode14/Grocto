@@ -1,32 +1,40 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
-import { format, subDays } from "date-fns"
 import "./Insights.css"
 
 const Insights = () => {
   const { user } = useAuth()
-  const [insights, setInsights] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [dateRange, setDateRange] = useState("30") // Default to 30 days
-  const [startDate, setStartDate] = useState(format(subDays(new Date(), 30), "yyyy-MM-dd"))
-  const [endDate, setEndDate] = useState(format(new Date(), "yyyy-MM-dd"))
+  const navigate = useNavigate()
+  const [isLoading, setIsLoading] = useState(true)
+  const [insights, setInsights] = useState({
+    totalSales: 0,
+    totalRevenue: 0,
+    averageOrderValue: 0,
+    topProducts: [],
+    topCustomers: [],
+    salesByMonth: [],
+    orderStatusDistribution: {},
+  })
+  const [timeRange, setTimeRange] = useState("month") // week, month, year, all
 
   useEffect(() => {
+    if (!user || user.role !== "seller") {
+      navigate("/signin")
+      return
+    }
+
     fetchInsights()
-  }, [dateRange])
+  }, [user, timeRange])
 
   const fetchInsights = async () => {
+    setIsLoading(true)
     try {
-      setLoading(true)
-      const response = await fetch(
-        `http://localhost:5000/api/seller/insights?startDate=${startDate}T00:00:00&endDate=${endDate}T23:59:59`,
-        {
-          credentials: "include",
-        },
-      )
+      const response = await fetch(`/api/seller/insights?timeRange=${timeRange}`, {
+        credentials: "include",
+      })
 
       if (!response.ok) {
         throw new Error("Failed to fetch insights")
@@ -37,220 +45,205 @@ const Insights = () => {
     } catch (error) {
       console.error("Error fetching insights:", error)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
-  const handleDateRangeChange = (e) => {
-    const days = Number.parseInt(e.target.value)
-    setDateRange(e.target.value)
+  // Mock data for demonstration
+  useEffect(() => {
+    // This would be replaced by the actual API call in production
+    const mockData = {
+      totalSales: 156,
+      totalRevenue: 12450.75,
+      averageOrderValue: 79.81,
+      topProducts: [
+        { id: 1, name: "Organic Bananas", quantity: 42, revenue: 1260 },
+        { id: 2, name: "Whole Wheat Bread", quantity: 38, revenue: 950 },
+        { id: 3, name: "Farm Fresh Eggs", quantity: 35, revenue: 875 },
+        { id: 4, name: "Almond Milk", quantity: 30, revenue: 750 },
+        { id: 5, name: "Avocados", quantity: 28, revenue: 700 },
+      ],
+      topCustomers: [
+        { id: 1, name: "Rahul Sharma", orders: 12, spent: 960 },
+        { id: 2, name: "Priya Patel", orders: 10, spent: 850 },
+        { id: 3, name: "Amit Kumar", orders: 8, spent: 720 },
+        { id: 4, name: "Sneha Gupta", orders: 7, spent: 630 },
+        { id: 5, name: "Vikram Singh", orders: 6, spent: 540 },
+      ],
+      salesByMonth: [
+        { month: "Jan", sales: 42, revenue: 3360 },
+        { month: "Feb", sales: 38, revenue: 3040 },
+        { month: "Mar", sales: 45, revenue: 3600 },
+        { month: "Apr", sales: 40, revenue: 3200 },
+        { month: "May", sales: 35, revenue: 2800 },
+        { month: "Jun", sales: 48, revenue: 3840 },
+      ],
+      orderStatusDistribution: {
+        pending: 15,
+        accepted: 25,
+        packaging: 20,
+        delivering: 30,
+        delivered: 60,
+        rejected: 6,
+      },
+    }
 
-    const end = new Date()
-    const start = subDays(end, days)
+    setInsights(mockData)
+    setIsLoading(false)
+  }, [timeRange])
 
-    setStartDate(format(start, "yyyy-MM-dd"))
-    setEndDate(format(end, "yyyy-MM-dd"))
+  const handleTimeRangeChange = (range) => {
+    setTimeRange(range)
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="insights-page">
-        <div className="insights-header">
-          <h1>Store Insights</h1>
-        </div>
-        <div className="loading-container">
-          <p>Loading insights...</p>
-        </div>
+      <div className="insights-page loading">
+        <div className="loading-spinner"></div>
+        <p>Loading insights...</p>
       </div>
     )
-  }
-
-  if (!insights) {
-    return (
-      <div className="insights-page">
-        <div className="insights-header">
-          <h1>Store Insights</h1>
-        </div>
-        <div className="loading-container">
-          <p>No insights available. Try a different date range.</p>
-        </div>
-      </div>
-    )
-  }
-
-  const { summary, statusCounts, topCustomers, topProducts, revenueTimeSeries, ordersTimeSeries } = insights
-
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(amount)
   }
 
   return (
     <div className="insights-page">
       <div className="insights-header">
-        <h1>Store Insights</h1>
-        <div className="date-filter">
-          <span>Time period:</span>
-          <select value={dateRange} onChange={handleDateRangeChange}>
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 3 months</option>
-            <option value="180">Last 6 months</option>
-            <option value="365">Last year</option>
-          </select>
+        <h1>Business Insights</h1>
+        <div className="time-range-selector">
+          <button className={timeRange === "week" ? "active" : ""} onClick={() => handleTimeRangeChange("week")}>
+            This Week
+          </button>
+          <button className={timeRange === "month" ? "active" : ""} onClick={() => handleTimeRangeChange("month")}>
+            This Month
+          </button>
+          <button className={timeRange === "year" ? "active" : ""} onClick={() => handleTimeRangeChange("year")}>
+            This Year
+          </button>
+          <button className={timeRange === "all" ? "active" : ""} onClick={() => handleTimeRangeChange("all")}>
+            All Time
+          </button>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="insights-grid">
+      <div className="insights-overview">
         <div className="insight-card">
-          <h3>Total Orders</h3>
-          <div className="value">{summary.totalOrders}</div>
+          <h3>Total Sales</h3>
+          <p className="insight-value">{insights.totalSales}</p>
+          <p className="insight-label">orders</p>
         </div>
-
         <div className="insight-card">
           <h3>Total Revenue</h3>
-          <div className="value">{formatCurrency(summary.totalRevenue)}</div>
+          <p className="insight-value">₹{insights.totalRevenue.toFixed(2)}</p>
+          <p className="insight-label">earned</p>
         </div>
-
         <div className="insight-card">
-          <h3>Items Sold</h3>
-          <div className="value">{summary.totalItemsSold}</div>
-        </div>
-
-        <div className="insight-card">
-          <h3>Avg. Order Value</h3>
-          <div className="value">{formatCurrency(summary.avgOrderValue)}</div>
+          <h3>Average Order Value</h3>
+          <p className="insight-value">₹{insights.averageOrderValue.toFixed(2)}</p>
+          <p className="insight-label">per order</p>
         </div>
       </div>
 
-      {/* Order Status */}
-      <div className="chart-container">
-        <div className="chart-header">
-          <h2>Order Status</h2>
-        </div>
-        <div className="status-chart">
-          {Object.entries(statusCounts).map(([status, count]) => (
-            <div key={status} className="status-item">
-              <div className="status-count">{count}</div>
-              <div className="status-label">{status.charAt(0).toUpperCase() + status.slice(1)}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Top Customers Table */}
-      <div className="table-container">
-        <div className="table-header">
-          <h2>Top Customers</h2>
-          <Link to="/seller/customers" className="view-all">
-            View All
-          </Link>
-        </div>
-        <table className="insights-table">
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th>Email</th>
-              <th>Orders</th>
-              <th>Total Spent</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topCustomers.length > 0 ? (
-              topCustomers.map((customer) => (
-                <tr key={customer.id}>
-                  <td>{customer.name}</td>
-                  <td>{customer.email}</td>
-                  <td>{customer.orderCount}</td>
-                  <td>{formatCurrency(customer.totalSpent)}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="4" style={{ textAlign: "center" }}>
-                  No customer data available for this period
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Top Products Table */}
-      <div className="table-container">
-        <div className="table-header">
+      <div className="insights-details">
+        <div className="insights-section">
           <h2>Top Products</h2>
-          <Link to="/seller/inventory" className="view-all">
-            View All Products
-          </Link>
-        </div>
-        <table className="insights-table">
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Quantity Sold</th>
-              <th>Revenue</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topProducts.length > 0 ? (
-              topProducts.map((product) => (
-                <tr key={product.id}>
-                  <td>{product.name}</td>
-                  <td>{product.quantitySold}</td>
-                  <td>{formatCurrency(product.revenue)}</td>
+          <div className="insights-table-container">
+            <table className="insights-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Quantity Sold</th>
+                  <th>Revenue</th>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="3" style={{ textAlign: "center" }}>
-                  No product data available for this period
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Revenue Over Time */}
-      <div className="chart-container">
-        <div className="chart-header">
-          <h2>Revenue Over Time</h2>
+              </thead>
+              <tbody>
+                {insights.topProducts.map((product) => (
+                  <tr key={product.id}>
+                    <td>{product.name}</td>
+                    <td>{product.quantity}</td>
+                    <td>₹{product.revenue}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div className="chart-content">
-          <div style={{ padding: "20px 0", textAlign: "center" }}>
-            {revenueTimeSeries.length > 0 ? (
-              <div>
-                <p>Revenue chart would be displayed here</p>
-                <p>Total revenue for period: {formatCurrency(summary.totalRevenue)}</p>
-              </div>
-            ) : (
-              <p>No revenue data available for this period</p>
-            )}
+
+        <div className="insights-section">
+          <h2>Top Customers</h2>
+          <div className="insights-table-container">
+            <table className="insights-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Orders</th>
+                  <th>Total Spent</th>
+                </tr>
+              </thead>
+              <tbody>
+                {insights.topCustomers.map((customer) => (
+                  <tr key={customer.id}>
+                    <td>{customer.name}</td>
+                    <td>{customer.orders}</td>
+                    <td>₹{customer.spent}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      {/* Orders Over Time */}
-      <div className="chart-container">
-        <div className="chart-header">
-          <h2>Orders Over Time</h2>
+      <div className="insights-charts">
+        <div className="insights-section">
+          <h2>Sales Trend</h2>
+          <div className="chart-container">
+            <div className="bar-chart">
+              {insights.salesByMonth.map((data) => (
+                <div className="bar-container" key={data.month}>
+                  <div
+                    className="bar"
+                    style={{
+                      height: `${(data.sales / Math.max(...insights.salesByMonth.map((d) => d.sales))) * 100}%`,
+                    }}
+                  >
+                    <span className="bar-value">{data.sales}</span>
+                  </div>
+                  <span className="bar-label">{data.month}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="chart-content">
-          <div style={{ padding: "20px 0", textAlign: "center" }}>
-            {ordersTimeSeries.length > 0 ? (
-              <div>
-                <p>Orders chart would be displayed here</p>
-                <p>Total orders for period: {summary.totalOrders}</p>
-              </div>
-            ) : (
-              <p>No order data available for this period</p>
-            )}
+
+        <div className="insights-section">
+          <h2>Order Status Distribution</h2>
+          <div className="chart-container">
+            <div className="status-distribution">
+              {Object.entries(insights.orderStatusDistribution).map(([status, count]) => (
+                <div className="status-item" key={status}>
+                  <div className="status-label">
+                    <span className={`status-dot ${status}`}></span>
+                    <span className="status-name">{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                  </div>
+                  <div className="status-bar-container">
+                    <div
+                      className="status-bar"
+                      style={{
+                        width: `${
+                          (count /
+                            Object.values(insights.orderStatusDistribution).reduce(
+                              (sum, current) => sum + current,
+                              0,
+                            )) *
+                          100
+                        }%`,
+                      }}
+                    ></div>
+                    <span className="status-count">{count}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

@@ -130,6 +130,11 @@ const Navbar = () => {
                 </Link>
               </li>
               <li className="nav-item">
+                <Link to="/seller/insights" className="nav-link" onClick={() => setIsMenuOpen(false)}>
+                  Insights
+                </Link>
+              </li>
+              <li className="nav-item">
                 <Link to="/seller/delivery-slots" className="nav-link" onClick={() => setIsMenuOpen(false)}>
                   Delivery Slots
                 </Link>

@@ -27,7 +27,11 @@ const OrderManagement = () => {
     setLoading(true)
     try {
       const response = await fetch("http://localhost:5000/api/orders", {
+        method: "GET",
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
       })
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -47,7 +51,11 @@ const OrderManagement = () => {
   const fetchDeliveryPersons = async () => {
     try {
       const response = await fetch("http://localhost:5000/api/seller/profile", {
+        method: "GET",
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
       })
 
       if (response.ok) {

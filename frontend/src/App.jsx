@@ -34,6 +34,8 @@ import "./App.css"
 
 // Import the ErrorBoundary at the top of the file
 import ErrorBoundary from "./components/ErrorBoundary"
+// First, import the Insights component at the top of the file with the other imports:
+import Insights from "./pages/seller/Insights"
 
 // Dashboard redirect component
 const DashboardRedirect = () => {
@@ -159,6 +161,15 @@ function App() {
                   element={
                     <ProtectedRoute role="seller">
                       <SellerDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Add the new Insights route after the existing seller routes: */}
+                <Route
+                  path="/seller/insights"
+                  element={
+                    <ProtectedRoute role="seller">
+                      <Insights />
                     </ProtectedRoute>
                   }
                 />
