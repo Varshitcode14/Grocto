@@ -12,40 +12,157 @@ const OrderManagement = () => {
   const [error, setError] = useState("")
   const [activeTab, setActiveTab] = useState("all")
   const [updatingOrder, setUpdatingOrder] = useState(null)
+  const [deliveryPersons, setDeliveryPersons] = useState([])
+  const [selectedDeliveryPerson, setSelectedDeliveryPerson] = useState("")
+  const [showDeliveryPersonModal, setShowDeliveryPersonModal] = useState(false)
+  const [currentOrderId, setCurrentOrderId] = useState(null)
 
+  // Add useEffect to fetch delivery persons
   useEffect(() => {
     fetchOrders()
+    fetchDeliveryPersons()
   }, [])
 
   const fetchOrders = async () => {
+    setLoading(true)
     try {
-      setLoading(true)
       const response = await fetch("http://localhost:5000/api/orders", {
         credentials: "include",
       })
-
       if (!response.ok) {
-        throw new Error("Failed to fetch orders")
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
-
       const data = await response.json()
+      console.log("Fetched orders:", data.orders)
       setOrders(data.orders || [])
-    } catch (error) {
-      setError(error.message || "Error fetching orders")
-      console.error("Error fetching orders:", error)
+    } catch (e) {
+      console.error("Error fetching orders:", e)
+      setError(e.message || "Could not fetch orders")
     } finally {
       setLoading(false)
     }
   }
 
-  const updateOrderStatus = async (orderId, status, estimatedDeliveryTime = null) => {
+  // Add function to fetch delivery persons
+  const fetchDeliveryPersons = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/api/seller/profile", {
+        credentials: "include",
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log("Fetched profile data:", data)
+        if (data.profile && data.profile.deliveryPersons) {
+          try {
+            // If it's already an array, use it directly
+            const parsedDeliveryPersons = Array.isArray(data.profile.deliveryPersons)
+              ? data.profile.deliveryPersons
+              : JSON.parse(data.profile.deliveryPersons)
+
+            setDeliveryPersons(Array.isArray(parsedDeliveryPersons) ? parsedDeliveryPersons : [])
+            console.log("Delivery persons set:", parsedDeliveryPersons)
+          } catch (e) {
+            console.error("Error parsing delivery persons:", e)
+            setDeliveryPersons([])
+          }
+        } else {
+          console.log("No delivery persons found in profile data")
+          setDeliveryPersons([])
+        }
+      } else {
+        console.error("Failed to fetch profile data:", response.status)
+      }
+    } catch (error) {
+      console.error("Error fetching delivery persons:", error)
+    }
+  }
+
+  // Add function to handle delivery person selection
+  const handleDeliveryPersonChange = (e) => {
+    setSelectedDeliveryPerson(e.target.value)
+  }
+
+  // Add function to open delivery person modal
+  const openDeliveryPersonModal = (orderId) => {
+    setCurrentOrderId(orderId)
+    setSelectedDeliveryPerson("")
+    setShowDeliveryPersonModal(true)
+  }
+
+  // Add function to close delivery person modal
+  const closeDeliveryPersonModal = () => {
+    setShowDeliveryPersonModal(false)
+    setCurrentOrderId(null)
+    setSelectedDeliveryPerson("")
+  }
+
+  // Add function to assign delivery person and update status
+  const assignDeliveryPersonAndUpdateStatus = async () => {
+    if (!selectedDeliveryPerson) {
+      setError("Please select a delivery person")
+      return
+    }
+
+    try {
+      setUpdatingOrder(currentOrderId)
+
+      const selectedPerson = deliveryPersons.find((p) => p.id.toString() === selectedDeliveryPerson)
+      if (!selectedPerson) {
+        throw new Error("Selected delivery person not found")
+      }
+
+      const deliveryPersonContact = `${selectedPerson.name} (${selectedPerson.phone})`
+
+      const response = await fetch(`http://localhost:5000/api/orders/${currentOrderId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "delivering",
+          deliveryPersonContact: deliveryPersonContact,
+        }),
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update order status")
+      }
+
+      // Update local state
+      setOrders(
+        orders.map((order) =>
+          order.id === currentOrderId
+            ? { ...order, status: "delivering", deliveryPersonContact: deliveryPersonContact }
+            : order,
+        ),
+      )
+
+      // Close modal and refresh orders
+      closeDeliveryPersonModal()
+      fetchOrders()
+    } catch (error) {
+      setError(error.message || "Error updating order status")
+      console.error("Error updating order status:", error)
+    } finally {
+      setUpdatingOrder(null)
+    }
+  }
+
+  // Update the updateOrderStatus function to handle delivery person selection
+  const updateOrderStatus = async (orderId, status) => {
+    // If status is "delivering", open delivery person selection modal
+    if (status === "delivering") {
+      openDeliveryPersonModal(orderId)
+      return
+    }
+
     try {
       setUpdatingOrder(orderId)
 
       const payload = { status }
-      if (estimatedDeliveryTime) {
-        payload.estimatedDeliveryTime = estimatedDeliveryTime
-      }
 
       const response = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
         method: "PUT",
@@ -57,7 +174,8 @@ const OrderManagement = () => {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to update order status")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update order status")
       }
 
       // Update local state
@@ -78,7 +196,7 @@ const OrderManagement = () => {
     const estimatedTime = new Date()
     estimatedTime.setHours(estimatedTime.getHours() + 2)
 
-    updateOrderStatus(orderId, "accepted", estimatedTime.toISOString())
+    updateOrderStatus(orderId, "accepted")
   }
 
   const handleRejectOrder = (orderId) => {
@@ -119,6 +237,7 @@ const OrderManagement = () => {
 
   const filteredOrders = activeTab === "all" ? orders : orders.filter((order) => order.status === activeTab)
 
+  // Add the delivery person modal to the JSX
   return (
     <div className="order-management-page">
       <div className="container">
@@ -227,7 +346,8 @@ const OrderManagement = () => {
                     <button
                       className="btn btn-primary btn-sm"
                       onClick={() => updateOrderStatus(order.id, "delivering")}
-                      disabled={updatingOrder === order.id}
+                      disabled={updatingOrder === order.id || deliveryPersons.length === 0}
+                      title={deliveryPersons.length === 0 ? "Add delivery persons in your profile first" : ""}
                     >
                       {updatingOrder === order.id ? "Updating..." : "Out for Delivery"}
                     </button>
@@ -248,6 +368,57 @@ const OrderManagement = () => {
           </div>
         ) : (
           <div className="no-orders">{activeTab === "all" ? "No orders found." : `No ${activeTab} orders found.`}</div>
+        )}
+
+        {/* Delivery Person Selection Modal */}
+        {showDeliveryPersonModal && (
+          <div className="modal-overlay">
+            <div className="modal-container">
+              <div className="modal-header">
+                <h2>Select Delivery Person</h2>
+                <button className="modal-close" onClick={closeDeliveryPersonModal}>
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                {deliveryPersons.length > 0 ? (
+                  <div className="form-group">
+                    <label htmlFor="deliveryPerson">Delivery Person</label>
+                    <select
+                      id="deliveryPerson"
+                      value={selectedDeliveryPerson}
+                      onChange={handleDeliveryPersonChange}
+                      className="form-control"
+                    >
+                      <option value="">Select a delivery person</option>
+                      {deliveryPersons.map((person) => (
+                        <option key={person.id} value={person.id}>
+                          {person.name} ({person.phone})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="no-delivery-persons-warning">
+                    <p>You haven't added any delivery persons yet.</p>
+                    <p>Please add delivery persons in your profile settings first.</p>
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-outline" onClick={closeDeliveryPersonModal}>
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={assignDeliveryPersonAndUpdateStatus}
+                  disabled={!selectedDeliveryPerson || updatingOrder === currentOrderId}
+                >
+                  {updatingOrder === currentOrderId ? "Updating..." : "Assign & Update Status"}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

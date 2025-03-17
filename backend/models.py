@@ -38,6 +38,7 @@ class Seller(db.Model):
     working_days = db.Column(db.String(100), default="Monday-Friday")
     opening_time = db.Column(db.String(10), default="09:00")
     closing_time = db.Column(db.String(10), default="18:00")
+    delivery_persons = db.Column(db.Text, default="[]")  # JSON string of delivery persons
     user = db.relationship('User', backref=db.backref('seller', uselist=False))
 
 # Delivery Slot Model
@@ -91,6 +92,7 @@ class Order(db.Model):
     total_amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default="pending")  # pending, accepted, rejected, packaging, delivering, delivered
     estimated_delivery_time = db.Column(db.DateTime, nullable=True)
+    delivery_person_contact = db.Column(db.String(200), nullable=True)  # Name and phone of delivery person
     student = db.relationship('Student', backref=db.backref('orders', lazy=True))
     seller = db.relationship('Seller', backref=db.backref('orders', lazy=True))
 

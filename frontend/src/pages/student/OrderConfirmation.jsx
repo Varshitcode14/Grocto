@@ -167,6 +167,16 @@ const OrderConfirmation = () => {
               </div>
             </div>
 
+            {order.deliveryPersonContact && order.status === "delivering" && (
+              <div className="confirmation-section">
+                <h3>Delivery Person</h3>
+                <div className="detail-row">
+                  <span className="detail-label">Contact:</span>
+                  <span className="detail-value delivery-person-contact">{order.deliveryPersonContact}</span>
+                </div>
+              </div>
+            )}
+
             <div className="order-tracking">
               <h3>Order Status</h3>
               <div className="tracking-timeline">

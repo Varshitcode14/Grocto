@@ -142,13 +142,22 @@ const StoreProducts = () => {
         {store && (
           <div className="store-header">
             <h1>{store.name}</h1>
-            <p className="store-address">{store.address}</p>
+            <p className="store-address">
+              <i className="fas fa-map-marker-alt"></i> {store.address}
+            </p>
             <div className="store-info">
               <span className="store-hours">
-                Hours: {store.openingTime} - {store.closingTime}
+                <i className="fas fa-clock"></i> Hours: {store.openingTime} - {store.closingTime}
               </span>
-              <span className="store-days">Days: {store.workingDays}</span>
+              <span className="store-days">
+                <i className="fas fa-calendar"></i> Days: {store.workingDays}
+              </span>
             </div>
+            {store.phoneNumber && (
+              <div className="store-contact">
+                <i className="fas fa-phone"></i> Contact: {store.phoneNumber}
+              </div>
+            )}
           </div>
         )}
 

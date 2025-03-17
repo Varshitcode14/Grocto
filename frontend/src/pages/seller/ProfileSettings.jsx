@@ -15,23 +15,54 @@ const ProfileSettings = () => {
     openingTime: "",
     closingTime: "",
   })
+  const [deliveryPersons, setDeliveryPersons] = useState([])
+  const [newDeliveryPerson, setNewDeliveryPerson] = useState({ name: "", phone: "" })
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || "",
-        storeName: user.profile?.storeName || "",
-        storeAddress: user.profile?.storeAddress || "",
-        phoneNumber: user.profile?.phoneNumber || "",
-        workingDays: user.profile?.workingDays || "",
-        openingTime: user.profile?.openingTime || "",
-        closingTime: user.profile?.closingTime || "",
-      })
-    }
+    fetchProfileData()
   }, [user])
+
+  const fetchProfileData = async () => {
+    if (!user) return
+
+    try {
+      setLoading(true)
+      const response = await fetch("http://localhost:5000/api/seller/profile", {
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch profile data")
+      }
+
+      const data = await response.json()
+      const profile = data.profile
+
+      setFormData({
+        name: profile.name || "",
+        storeName: profile.storeName || "",
+        storeAddress: profile.storeAddress || "",
+        phoneNumber: profile.phoneNumber || "",
+        workingDays: profile.workingDays || "",
+        openingTime: profile.openingTime || "",
+        closingTime: profile.closingTime || "",
+      })
+
+      // Set delivery persons if available
+      if (profile.deliveryPersons) {
+        console.log("Received delivery persons:", profile.deliveryPersons)
+        setDeliveryPersons(Array.isArray(profile.deliveryPersons) ? profile.deliveryPersons : [])
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error)
+      setError("Failed to load profile data")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -39,6 +70,36 @@ const ProfileSettings = () => {
       ...formData,
       [name]: value,
     })
+  }
+
+  const handleDeliveryPersonChange = (e) => {
+    const { name, value } = e.target
+    setNewDeliveryPerson({
+      ...newDeliveryPerson,
+      [name]: value,
+    })
+  }
+
+  const addDeliveryPerson = () => {
+    if (!newDeliveryPerson.name || !newDeliveryPerson.phone) {
+      setError("Both name and phone are required for delivery person")
+      return
+    }
+
+    const newPerson = {
+      ...newDeliveryPerson,
+      id: Date.now(), // Use timestamp as a unique ID
+    }
+
+    const updatedDeliveryPersons = [...deliveryPersons, newPerson]
+    setDeliveryPersons(updatedDeliveryPersons)
+    setNewDeliveryPerson({ name: "", phone: "" })
+    setError("")
+  }
+
+  const removeDeliveryPerson = (id) => {
+    const updatedDeliveryPersons = deliveryPersons.filter((person) => person.id !== id)
+    setDeliveryPersons(updatedDeliveryPersons)
   }
 
   const handleSubmit = async (e) => {
@@ -49,12 +110,27 @@ const ProfileSettings = () => {
     try {
       setLoading(true)
 
+      // Ensure each delivery person has an id
+      const deliveryPersonsWithIds = deliveryPersons.map((person) => {
+        if (!person.id) {
+          return { ...person, id: Date.now() + Math.random() }
+        }
+        return person
+      })
+
+      const updatedData = {
+        ...formData,
+        deliveryPersons: deliveryPersonsWithIds,
+      }
+
+      console.log("Sending profile data:", updatedData)
+
       const response = await fetch("http://localhost:5000/api/seller/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(updatedData),
         credentials: "include",
       })
 
@@ -64,9 +140,13 @@ const ProfileSettings = () => {
       }
 
       setSuccess("Profile updated successfully")
+      setDeliveryPersons(deliveryPersonsWithIds)
 
       // Refresh user data
       await checkAuthStatus()
+
+      // Fetch updated profile data to ensure we have the latest
+      await fetchProfileData()
     } catch (error) {
       setError(error.message || "Error updating profile")
       console.error("Error updating profile:", error)
@@ -182,6 +262,60 @@ const ProfileSettings = () => {
                     onChange={handleChange}
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="form-section">
+              <h2>Delivery Persons</h2>
+              <p className="section-description">Add delivery personnel who will deliver orders to customers</p>
+
+              <div className="delivery-persons-list">
+                {deliveryPersons.length > 0 ? (
+                  deliveryPersons.map((person) => (
+                    <div key={person.id} className="delivery-person-item">
+                      <div className="delivery-person-info">
+                        <span className="person-name">{person.name}</span>
+                        <span className="person-phone">{person.phone}</span>
+                      </div>
+                      <button type="button" className="btn-remove" onClick={() => removeDeliveryPerson(person.id)}>
+                        Remove
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="no-delivery-persons">No delivery persons added yet</div>
+                )}
+              </div>
+
+              <div className="add-delivery-person">
+                <h3>Add New Delivery Person</h3>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="deliveryPersonName">Name</label>
+                    <input
+                      type="text"
+                      id="deliveryPersonName"
+                      name="name"
+                      value={newDeliveryPerson.name}
+                      onChange={handleDeliveryPersonChange}
+                      placeholder="Enter name"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="deliveryPersonPhone">Phone</label>
+                    <input
+                      type="tel"
+                      id="deliveryPersonPhone"
+                      name="phone"
+                      value={newDeliveryPerson.phone}
+                      onChange={handleDeliveryPersonChange}
+                      placeholder="Enter phone number"
+                    />
+                  </div>
+                </div>
+                <button type="button" className="btn btn-outline add-person-btn" onClick={addDeliveryPerson}>
+                  Add Delivery Person
+                </button>
               </div>
             </div>
 

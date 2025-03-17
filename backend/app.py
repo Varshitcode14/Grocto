@@ -5,6 +5,7 @@ import os
 from werkzeug.utils import secure_filename
 from models import db, User, Student, Seller, Product, CartItem, CartStore, Order, OrderItem, Notification, DeliverySlot, Address
 from flask_bcrypt import Bcrypt
+import json
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
@@ -139,6 +140,15 @@ def login():
         }
     elif user.role == 'seller':
         seller = Seller.query.filter_by(user_id=user.id).first()
+        
+        # Parse delivery persons from JSON string
+        delivery_persons = []
+        if seller.delivery_persons:
+            try:
+                delivery_persons = json.loads(seller.delivery_persons)
+            except:
+                delivery_persons = []
+                
         profile_data = {
             'id': seller.id,
             'storeName': seller.store_name,
@@ -146,7 +156,8 @@ def login():
             'phoneNumber': seller.phone_number,
             'workingDays': seller.working_days,
             'openingTime': seller.opening_time,
-            'closingTime': seller.closing_time
+            'closingTime': seller.closing_time,
+            'deliveryPersons': delivery_persons
         }
     
     return jsonify({
@@ -198,6 +209,15 @@ def check_auth():
             }
         elif user.role == 'seller':
             seller = Seller.query.filter_by(user_id=user.id).first()
+            
+            # Parse delivery persons from JSON string
+            delivery_persons = []
+            if seller.delivery_persons:
+                try:
+                    delivery_persons = json.loads(seller.delivery_persons)
+                except:
+                    delivery_persons = []
+                    
             profile_data = {
                 'id': seller.id,
                 'storeName': seller.store_name,
@@ -205,7 +225,8 @@ def check_auth():
                 'phoneNumber': seller.phone_number,
                 'workingDays': seller.working_days,
                 'openingTime': seller.opening_time,
-                'closingTime': seller.closing_time
+                'closingTime': seller.closing_time,
+                'deliveryPersons': delivery_persons
             }
         
         return jsonify({
@@ -371,39 +392,39 @@ def get_stores():
 
 @app.route('/api/stores/<int:store_id>', methods=['GET'])
 def get_store(store_id):
-    seller = Seller.query.get(store_id)
-    
-    if not seller:
-        return jsonify({"error": "Store not found"}), 404
-    
-    # Count products for this seller
-    products_count = Product.query.filter_by(seller_id=seller.id).count()
-    
-    # Get delivery slots
-    delivery_slots = DeliverySlot.query.filter_by(seller_id=seller.id).all()
-    slots = []
-    
-    for slot in delivery_slots:
-        slots.append({
-            "id": slot.id,
-            "startTime": slot.start_time,
-            "endTime": slot.end_time,
-            "deliveryFee": slot.delivery_fee
-        })
-    
-    store_data = {
-        "id": seller.id,
-        "name": seller.store_name,
-        "address": seller.store_address,
-        "phoneNumber": seller.phone_number,
-        "workingDays": seller.working_days,
-        "openingTime": seller.opening_time,
-        "closingTime": seller.closing_time,
-        "productsCount": products_count,
-        "deliverySlots": slots
-    }
-    
-    return jsonify({"store": store_data}), 200
+  seller = Seller.query.get(store_id)
+  
+  if not seller:
+      return jsonify({"error": "Store not found"}), 404
+  
+  # Count products for this seller
+  products_count = Product.query.filter_by(seller_id=seller.id).count()
+  
+  # Get delivery slots
+  delivery_slots = DeliverySlot.query.filter_by(seller_id=seller.id).all()
+  slots = []
+  
+  for slot in delivery_slots:
+      slots.append({
+          "id": slot.id,
+          "startTime": slot.start_time,
+          "endTime": slot.end_time,
+          "deliveryFee": slot.delivery_fee
+      })
+  
+  store_data = {
+      "id": seller.id,
+      "name": seller.store_name,
+      "address": seller.store_address,
+      "phoneNumber": seller.phone_number,
+      "workingDays": seller.working_days,
+      "openingTime": seller.opening_time,
+      "closingTime": seller.closing_time,
+      "productsCount": products_count,
+      "deliverySlots": slots
+  }
+  
+  return jsonify({"store": store_data}), 200
 
 @app.route('/api/stores/<int:store_id>/products', methods=['GET'])
 def get_store_products(store_id):
@@ -806,6 +827,8 @@ def create_order():
         return jsonify({"error": "No items in cart"}), 400
     
     seller = Seller.query.get(cart_store.store_id)
+    if not seller:
+        return jsonify({"error": "Store not found"}), 404
     
     # Get cart items
     cart_items = CartItem.query.filter_by(student_id=student.id).all()
@@ -859,65 +882,72 @@ def create_order():
     # Calculate total
     total_amount = subtotal + delivery_fee
     
-    # Create new order
-    new_order = Order(
-        student_id=student.id,
-        seller_id=seller.id,
-        delivery_start_time=delivery_start_time,
-        delivery_end_time=delivery_end_time,
-        delivery_address=data['deliveryAddress'],
-        subtotal=subtotal,
-        delivery_fee=delivery_fee,
-        total_amount=total_amount,
-        status="pending"
-    )
-    
-    db.session.add(new_order)
-    db.session.commit()
-    
-    # Create order items
-    for cart_item in cart_items:
-        product = Product.query.get(cart_item.product_id)
-        
-        order_item = OrderItem(
-            order_id=new_order.id,
-            product_id=product.id,
-            product_name=product.name,
-            product_price=product.price,
-            quantity=cart_item.quantity,
-            subtotal=product.price * cart_item.quantity
+    try:
+        # Create new order
+        new_order = Order(
+            student_id=student.id,
+            seller_id=seller.id,
+            delivery_start_time=delivery_start_time,
+            delivery_end_time=delivery_end_time,
+            delivery_address=data['deliveryAddress'],
+            subtotal=subtotal,
+            delivery_fee=delivery_fee,
+            total_amount=total_amount,
+            status="pending"
         )
         
-        db.session.add(order_item)
+        db.session.add(new_order)
+        db.session.commit()
         
-        # Update product stock
-        product.stock -= cart_item.quantity
-        if product.stock < 0:
-            product.stock = 0
-    
-    # Create notification for seller
-    seller_user = User.query.get(seller.user_id)
-    notification = Notification(
-        recipient_id=seller_user.id,
-        title="New Order Received",
-        message=f"You have received a new order #{new_order.id} from {user.name}.",
-        type="order",
-        reference_id=new_order.id
-    )
-    
-    db.session.add(notification)
-    
-    # Clear cart
-    for item in cart_items:
-        db.session.delete(item)
-    
-    db.session.delete(cart_store)
-    db.session.commit()
-    
-    return jsonify({
-        "message": "Order placed successfully",
-        "orderId": new_order.id
-    }), 201
+        # Create order items
+        for cart_item in cart_items:
+            product = Product.query.get(cart_item.product_id)
+            
+            order_item = OrderItem(
+                order_id=new_order.id,
+                product_id=product.id,
+                product_name=product.name,
+                product_price=product.price,
+                quantity=cart_item.quantity,
+                subtotal=product.price * cart_item.quantity
+            )
+            
+            db.session.add(order_item)
+            
+            # Update product stock
+            product.stock -= cart_item.quantity
+            if product.stock < 0:
+                product.stock = 0
+        
+        # Create notification for seller
+        seller_user = User.query.get(seller.user_id)
+        notification = Notification(
+            recipient_id=seller_user.id,
+            title="New Order Received",
+            message=f"You have received a new order #{new_order.id} from {user.name}.",
+            type="order",
+            reference_id=new_order.id
+        )
+        
+        db.session.add(notification)
+        
+        # Clear cart
+        for item in cart_items:
+            db.session.delete(item)
+        
+        db.session.delete(cart_store)
+        db.session.commit()
+        
+        print(f"Order {new_order.id} created successfully for seller {seller.id}")
+        
+        return jsonify({
+            "message": "Order placed successfully",
+            "orderId": new_order.id
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating order: {str(e)}")
+        return jsonify({"error": f"Failed to create order: {str(e)}"}), 500
 
 @app.route('/api/orders', methods=['GET'])
 def get_orders():
@@ -947,11 +977,15 @@ def get_orders():
             seller = Seller.query.get(order.seller_id)
             store_name = seller.store_name
         
+        # Format delivery slot for display
+        delivery_slot = f"{order.delivery_start_time} - {order.delivery_end_time}"
+        
         order_data = {
             "id": order.id,
             "orderDate": order.order_date.isoformat(),
             "deliveryStartTime": order.delivery_start_time,
             "deliveryEndTime": order.delivery_end_time,
+            "deliverySlot": delivery_slot,
             "status": order.status,
             "subtotal": order.subtotal,
             "deliveryFee": order.delivery_fee,
@@ -967,6 +1001,9 @@ def get_orders():
             order_data["estimatedDeliveryTime"] = order.estimated_delivery_time.isoformat()
         
         order_list.append(order_data)
+    
+    # For debugging
+    print(f"Returning {len(order_list)} orders for {user.role} {user.name}")
     
     return jsonify({"orders": order_list}), 200
 
@@ -1044,7 +1081,8 @@ def get_order(order_id):
         "subtotal": order.subtotal,
         "deliveryFee": order.delivery_fee,
         "totalAmount": order.total_amount,
-        "items": items
+        "items": items,
+        "deliveryPersonContact": order.delivery_person_contact
     })
     
     if order.estimated_delivery_time:
@@ -1054,60 +1092,68 @@ def get_order(order_id):
 
 @app.route('/api/orders/<int:order_id>/status', methods=['PUT'])
 def update_order_status(order_id):
-    if 'user_id' not in session or session['role'] != 'seller':
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    data = request.json
-    user = User.query.get(session['user_id'])
-    seller = Seller.query.filter_by(user_id=user.id).first()
-    
-    order = Order.query.get(order_id)
-    if not order:
-        return jsonify({"error": "Order not found"}), 404
-    
-    if order.seller_id != seller.id:
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    # Update order status
-    order.status = data['status']
-    
-    # If accepting order, set estimated delivery time
-    if data['status'] == 'accepted' and 'estimatedDeliveryTime' in data:
-        try:
-            estimated_time = datetime.fromisoformat(data['estimatedDeliveryTime'])
-            order.estimated_delivery_time = estimated_time
-        except ValueError:
-            return jsonify({"error": "Invalid date format"}), 400
-    
-    db.session.commit()
-    
-    # Create notification for student
-    student = Student.query.get(order.student_id)
-    student_user = User.query.get(student.user_id)
-    
-    status_message = {
-        'accepted': f"Your order #{order.id} has been accepted by {seller.store_name}.",
-        'rejected': f"Your order #{order.id} has been rejected by {seller.store_name}.",
-        'packaging': f"Your order #{order.id} is now being packaged.",
-        'delivering': f"Your order #{order.id} is out for delivery.",
-        'delivered': f"Your order #{order.id} has been delivered."
-    }
-    
-    notification = Notification(
-        recipient_id=student_user.id,
-        title=f"Order {data['status'].capitalize()}",
-        message=status_message.get(data['status'], f"Your order #{order.id} status has been updated to {data['status']}."),
-        type="order",
-        reference_id=order.id
-    )
-    
-    db.session.add(notification)
-    db.session.commit()
-    
-    return jsonify({
-        "message": "Order status updated successfully",
-        "status": order.status
-    }), 200
+  if 'user_id' not in session or session['role'] != 'seller':
+      return jsonify({"error": "Unauthorized"}), 401
+  
+  data = request.json
+  user = User.query.get(session['user_id'])
+  seller = Seller.query.filter_by(user_id=user.id).first()
+  
+  order = Order.query.get(order_id)
+  if not order:
+      return jsonify({"error": "Order not found"}), 404
+  
+  if order.seller_id != seller.id:
+      return jsonify({"error": "Unauthorized"}), 401
+  
+  # Update order status
+  order.status = data['status']
+  
+  # If accepting order, set estimated delivery time
+  if data['status'] == 'accepted' and 'estimatedDeliveryTime' in data:
+      try:
+          estimated_time = datetime.fromisoformat(data['estimatedDeliveryTime'])
+          order.estimated_delivery_time = estimated_time
+      except ValueError:
+          return jsonify({"error": "Invalid date format"}), 400
+  
+  # If setting to delivering, set delivery person contact
+  if data['status'] == 'delivering' and 'deliveryPersonContact' in data:
+      order.delivery_person_contact = data['deliveryPersonContact']
+  
+  db.session.commit()
+  
+  # Create notification for student
+  student = Student.query.get(order.student_id)
+  student_user = User.query.get(student.user_id)
+  
+  status_message = {
+      'accepted': f"Your order #{order.id} has been accepted by {seller.store_name}.",
+      'rejected': f"Your order #{order.id} has been rejected by {seller.store_name}.",
+      'packaging': f"Your order #{order.id} is now being packaged.",
+      'delivering': f"Your order #{order.id} is out for delivery.",
+      'delivered': f"Your order #{order.id} has been delivered."
+  }
+  
+  # Add delivery person info to notification if available
+  if data['status'] == 'delivering' and order.delivery_person_contact:
+      status_message['delivering'] = f"Your order #{order.id} is out for delivery with {order.delivery_person_contact}."
+  
+  notification = Notification(
+      recipient_id=student_user.id,
+      title=f"Order {data['status'].capitalize()}",
+      message=status_message.get(data['status'], f"Your order #{order.id} status has been updated to {data['status']}."),
+      type="order",
+      reference_id=order.id
+  )
+  
+  db.session.add(notification)
+  db.session.commit()
+  
+  return jsonify({
+      "message": "Order status updated successfully",
+      "status": order.status
+  }), 200
 
 # Notification Routes
 @app.route('/api/notifications', methods=['GET'])
@@ -1184,67 +1230,161 @@ def uploaded_file(filename):
 
 @app.route('/api/student/profile', methods=['GET', 'PUT'])
 def student_profile():
-  if 'user_id' not in session or session['role'] != 'student':
-      return jsonify({"error": "Unauthorized"}), 401
-  
-  user = User.query.get(session['user_id'])
-  student = Student.query.filter_by(user_id=user.id).first()
-  
-  if request.method == 'GET':
-      # Get addresses
-      addresses = []
-      for addr in student.addresses:
-          addresses.append({
-              "id": addr.id,
-              "name": addr.name,
-              "address": addr.address,
-              "isDefault": addr.is_default
-          })
-      
-      return jsonify({
-          "profile": {
-              "name": user.name,
-              "email": user.email,
-              "collegeId": student.college_id,
-              "phone": student.phone,
-              "department": student.department,
-              "addresses": addresses
-          }
-      }), 200
-  
-  elif request.method == 'PUT':
-      data = request.json
-      
-      # Update user name if provided
-      if 'name' in data and data['name']:
-          user.name = data['name']
-      
-      # Update student profile fields
-      if 'phone' in data:
-          student.phone = data['phone']
-      
-      if 'department' in data:
-          student.department = data['department']
-      
-      # Handle addresses if provided
-      if 'addresses' in data and isinstance(data['addresses'], list):
-          # First, remove all existing addresses
-          for addr in student.addresses:
-              db.session.delete(addr)
-          
-          # Then add the new addresses
-          for addr_data in data['addresses']:
-              new_addr = Address(
-                  student_id=student.id,
-                  name=addr_data.get('name', 'Default Address'),
-                  address=addr_data.get('address', ''),
-                  is_default=addr_data.get('isDefault', False)
-              )
-              db.session.add(new_addr)
-      
-      db.session.commit()
-      
-      return jsonify({"message": "Profile updated successfully"}), 200
+    if 'user_id' not in session or session['role'] != 'student':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.get(session['user_id'])
+    student = Student.query.filter_by(user_id=user.id).first()
+    
+    if request.method == 'GET':
+        # Get addresses
+        addresses = []
+        for addr in student.addresses:
+            addresses.append({
+                "id": addr.id,
+                "name": addr.name,
+                "address": addr.address,
+                "isDefault": addr.is_default
+            })
+        
+        return jsonify({
+            "profile": {
+                "name": user.name,
+                "email": user.email,
+                "collegeId": student.college_id,
+                "phone": student.phone,
+                "department": student.department,
+                "addresses": addresses
+            }
+        }), 200
+    
+    elif request.method == 'PUT':
+        try:
+            data = request.json
+            print(f"Received student profile update data: {data}")
+            
+            # Update user name if provided
+            if 'name' in data and data['name']:
+                user.name = data['name']
+            
+            # Update student profile fields
+            if 'phone' in data:
+                student.phone = data['phone']
+            
+            if 'department' in data:
+                student.department = data['department']
+            
+            # Handle addresses if provided
+            if 'addresses' in data and isinstance(data['addresses'], list):
+                # First, remove all existing addresses
+                for addr in student.addresses:
+                    db.session.delete(addr)
+                
+                # Then add the new addresses
+                for addr_data in data['addresses']:
+                    # Ensure we have all required fields
+                    if not addr_data.get('name') or not addr_data.get('address'):
+                        continue
+                        
+                    new_addr = Address(
+                        student_id=student.id,
+                        name=addr_data.get('name', 'Default Address'),
+                        address=addr_data.get('address', ''),
+                        is_default=addr_data.get('isDefault', False)
+                    )
+                    db.session.add(new_addr)
+            
+            # Save changes
+            db.session.commit()
+            print("Student profile updated successfully")
+            
+            return jsonify({"message": "Profile updated successfully"}), 200
+            
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error updating student profile: {str(e)}")
+            return jsonify({"error": f"Failed to update profile: {str(e)}"}), 500
+
+@app.route('/api/seller/profile', methods=['GET', 'PUT'])
+def seller_profile():
+    if 'user_id' not in session or session['role'] != 'seller':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.get(session['user_id'])
+    seller = Seller.query.filter_by(user_id=user.id).first()
+    
+    if request.method == 'GET':
+        # Parse delivery persons from JSON string
+        delivery_persons = []
+        if seller.delivery_persons:
+            try:
+                delivery_persons = json.loads(seller.delivery_persons)
+                print(f"Retrieved delivery persons: {delivery_persons}")
+            except Exception as e:
+                print(f"Error parsing delivery persons during GET: {str(e)}")
+                delivery_persons = []
+        
+        return jsonify({
+            "profile": {
+                "name": user.name,
+                "email": user.email,
+                "storeName": seller.store_name,
+                "storeAddress": seller.store_address,
+                "phoneNumber": seller.phone_number,
+                "workingDays": seller.working_days,
+                "openingTime": seller.opening_time,
+                "closingTime": seller.closing_time,
+                "deliveryPersons": delivery_persons
+            }
+        }), 200
+    
+    elif request.method == 'PUT':
+        data = request.json
+        print(f"Received profile update data: {data}")
+        
+        # Update user name if provided
+        if 'name' in data and data['name']:
+            user.name = data['name']
+        
+        # Update seller profile fields
+        if 'storeName' in data:
+            seller.store_name = data['storeName']
+        
+        if 'storeAddress' in data:
+            seller.store_address = data['storeAddress']
+        
+        if 'phoneNumber' in data:
+            seller.phone_number = data['phoneNumber']
+        
+        if 'workingDays' in data:
+            seller.working_days = data['workingDays']
+        
+        if 'openingTime' in data:
+            seller.opening_time = data['openingTime']
+        
+        if 'closingTime' in data:
+            seller.closing_time = data['closingTime']
+        
+        # Update delivery persons if provided
+        if 'deliveryPersons' in data:
+            # Directly store the array as JSON string
+            try:
+                delivery_persons = data['deliveryPersons']
+                # Convert to JSON string
+                seller.delivery_persons = json.dumps(delivery_persons)
+                print(f"Updated delivery persons: {seller.delivery_persons}")
+            except Exception as e:
+                print(f"Error updating delivery persons: {str(e)}")
+                return jsonify({"error": f"Invalid delivery persons data: {str(e)}"}), 400
+        
+        try:
+            db.session.commit()
+            print("Profile updated successfully")
+            return jsonify({"message": "Profile updated successfully"}), 200
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error committing changes: {str(e)}")
+            return jsonify({"error": f"Failed to update profile: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

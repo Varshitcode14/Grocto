@@ -37,35 +37,58 @@ const UserProfile = () => {
 
   // Load user data when component mounts
   useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || "",
-        email: user.email || "",
-        phone: user.profile?.phone || "",
-        collegeId: user.profile?.collegeId || "",
-        department: user.profile?.department || "",
+    fetchProfileData()
+  }, [user])
+
+  const fetchProfileData = async () => {
+    if (!user) return
+
+    try {
+      setLoading(true)
+      const response = await fetch("http://localhost:5000/api/student/profile", {
+        credentials: "include",
       })
 
-      // Fetch addresses from API (mock data for now)
-      // In a real app, you would fetch this from your backend
-      const mockAddresses = user.profile?.addresses || []
-      setAddresses(mockAddresses)
+      if (!response.ok) {
+        throw new Error("Failed to fetch profile data")
+      }
+
+      const data = await response.json()
+      const profile = data.profile
+
+      setFormData({
+        name: profile.name || "",
+        email: profile.email || "",
+        phone: profile.phone || "",
+        collegeId: profile.collegeId || "",
+        department: profile.department || "",
+      })
+
+      // Set addresses if available
+      if (profile.addresses) {
+        console.log("Received addresses:", profile.addresses)
+        setAddresses(profile.addresses || [])
+      }
 
       // Initialize notifications from user profile if available
-      if (user.profile?.notifications) {
-        setNotifications(user.profile.notifications)
+      if (profile.notifications) {
+        setNotifications(profile.notifications)
       }
 
       // Check if profile is complete
       const isComplete = checkProfileComplete({
-        phone: user.profile?.phone || "",
-        addresses: mockAddresses,
+        phone: profile.phone || "",
+        addresses: profile.addresses || [],
       })
 
       setIsProfileComplete(isComplete)
+    } catch (error) {
+      console.error("Error fetching profile:", error)
+      setMessage({ type: "error", text: "Failed to load profile data" })
+    } finally {
       setLoading(false)
     }
-  }, [user])
+  }
 
   // Check if profile is complete (has phone and at least one address)
   const checkProfileComplete = (data) => {
@@ -117,6 +140,7 @@ const UserProfile = () => {
       }
 
       setMessage({ type: "", text: "" }) // Clear any existing messages
+      setLoading(true)
 
       // Prepare the data to send to the backend
       const profileData = {
@@ -124,7 +148,10 @@ const UserProfile = () => {
         phone: formData.phone,
         department: formData.department,
         addresses: addresses,
+        notifications: notifications,
       }
+
+      console.log("Sending profile data:", profileData)
 
       // Send the data to the backend
       const response = await fetch("http://localhost:5000/api/student/profile", {
@@ -144,6 +171,9 @@ const UserProfile = () => {
       // Refresh auth status to get updated user data
       await checkAuthStatus()
 
+      // Fetch updated profile data
+      await fetchProfileData()
+
       // Check if profile is complete with the updated data
       const isComplete = checkProfileComplete({
         phone: formData.phone,
@@ -162,6 +192,8 @@ const UserProfile = () => {
     } catch (error) {
       console.error("Error updating profile:", error)
       setMessage({ type: "error", text: error.message || "Failed to update profile. Please try again." })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -257,7 +289,7 @@ const UserProfile = () => {
     }, 3000)
   }
 
-  if (loading) {
+  if (loading && !user) {
     return <div className="loading">Loading profile...</div>
   }
 
@@ -337,8 +369,8 @@ const UserProfile = () => {
 
             {/* Save Button */}
             <div className="form-actions">
-              <button onClick={handleSaveProfile} className="btn btn-primary">
-                Save Profile Changes
+              <button onClick={handleSaveProfile} className="btn btn-primary" disabled={loading}>
+                {loading ? "Saving..." : "Save Profile Changes"}
               </button>
             </div>
           </div>
