@@ -2,8 +2,9 @@ from flask import Flask, jsonify, request, session, send_from_directory
 from flask_cors import CORS
 from datetime import datetime, timedelta
 import os
+import pytz
 from werkzeug.utils import secure_filename
-from models import db, User, Student, Seller, Product, CartItem, CartStore, Order, OrderItem, Notification, DeliverySlot, Address
+from models import db, User, Student, Seller, Product, CartItem, CartStore, Order, OrderItem, Notification, DeliverySlot, Address, Offer
 from flask_bcrypt import Bcrypt
 import json
 
@@ -1276,16 +1277,20 @@ def student_profile():
             
             # Handle addresses if provided
             if 'addresses' in data and isinstance(data['addresses'], list):
-                # First, remove all existing addresses
-                for addr in student.addresses:
-                    db.session.delete(addr)
+                print(f"Processing {len(data['addresses'])} addresses")
+                
+                # First, delete all existing addresses for this student
+                Address.query.filter_by(student_id=student.id).delete()
+                db.session.flush()  # Flush changes to DB
                 
                 # Then add the new addresses
                 for addr_data in data['addresses']:
                     # Ensure we have all required fields
                     if not addr_data.get('name') or not addr_data.get('address'):
+                        print(f"Skipping address with missing data: {addr_data}")
                         continue
-                        
+                    
+                    # Create new address
                     new_addr = Address(
                         student_id=student.id,
                         name=addr_data.get('name', 'Default Address'),
@@ -1293,6 +1298,7 @@ def student_profile():
                         is_default=addr_data.get('isDefault', False)
                     )
                     db.session.add(new_addr)
+                    print(f"Added new address: {new_addr.name}, {new_addr.address}, default: {new_addr.is_default}")
             
             # Save changes
             db.session.commit()
@@ -1385,6 +1391,272 @@ def seller_profile():
             db.session.rollback()
             print(f"Error committing changes: {str(e)}")
             return jsonify({"error": f"Failed to update profile: {str(e)}"}), 500
+
+# Add these routes after the existing routes in app.py
+
+# Offer Routes
+@app.route('/api/offers', methods=['GET'])
+def get_offers():
+    if 'user_id' not in session or session['role'] != 'seller':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.get(session['user_id'])
+    seller = Seller.query.filter_by(user_id=user.id).first()
+    
+    offers = Offer.query.filter_by(seller_id=seller.id).order_by(Offer.created_at.desc()).all()
+    
+    offer_list = []
+    for offer in offers:
+        # Parse applicable products
+        applicable_products = offer.applicable_products
+        if applicable_products != 'all':
+            try:
+                applicable_products = json.loads(applicable_products)
+            except:
+                applicable_products = []
+        
+        offer_list.append({
+            "id": offer.id,
+            "title": offer.title,
+            "description": offer.description,
+            "discountType": offer.discount_type,
+            "amount": offer.amount,
+            "minPurchase": offer.min_purchase,
+            "applicableProducts": applicable_products,
+            "offerLimit": offer.offer_limit,
+            "usageCount": offer.usage_count,
+            "startingDate": offer.starting_date.isoformat(),
+            "closingDate": offer.closing_date.isoformat(),
+            "createdAt": offer.created_at.isoformat()
+        })
+    
+    return jsonify({"offers": offer_list}), 200
+
+# Update the get_active_offers function to use IST
+@app.route('/api/offers/active', methods=['GET'])
+def get_active_offers():
+    # Get current date in IST
+    ist_now = datetime.now(pytz.timezone('Asia/Kolkata')).date()
+    
+    # Get all active offers from all sellers
+    offers = Offer.query.filter(
+        Offer.starting_date <= ist_now,
+        Offer.closing_date >= ist_now
+    ).order_by(Offer.created_at.desc()).all()
+    
+    offer_list = []
+    for offer in offers:
+        # Get seller info
+        seller = Seller.query.get(offer.seller_id)
+        
+        # Parse applicable products
+        applicable_products = offer.applicable_products
+        if applicable_products != 'all':
+            try:
+                applicable_products = json.loads(applicable_products)
+            except:
+                applicable_products = []
+        
+        offer_list.append({
+            "id": offer.id,
+            "title": offer.title,
+            "description": offer.description,
+            "discountType": offer.discount_type,
+            "amount": offer.amount,
+            "minPurchase": offer.min_purchase,
+            "applicableProducts": applicable_products,
+            "offerLimit": offer.offer_limit,
+            "usageCount": offer.usage_count,
+            "startingDate": offer.starting_date.isoformat(),
+            "closingDate": offer.closing_date.isoformat(),
+            "storeId": seller.id,
+            "storeName": seller.store_name
+        })
+    
+    return jsonify({"offers": offer_list}), 200
+
+# Update the get_store_offers function to use IST
+@app.route('/api/offers/store/<int:store_id>', methods=['GET'])
+def get_store_offers(store_id):
+    # Get current date in IST
+    ist_now = datetime.now(pytz.timezone('Asia/Kolkata')).date()
+    
+    # Get active offers for a specific store
+    offers = Offer.query.filter(
+        Offer.seller_id == store_id,
+        Offer.starting_date <= ist_now,
+        Offer.closing_date >= ist_now
+    ).order_by(Offer.created_at.desc()).all()
+    
+    offer_list = []
+    for offer in offers:
+        # Parse applicable products
+        applicable_products = offer.applicable_products
+        if applicable_products != 'all':
+            try:
+                applicable_products = json.loads(applicable_products)
+            except:
+                applicable_products = []
+        
+        offer_list.append({
+            "id": offer.id,
+            "title": offer.title,
+            "description": offer.description,
+            "discountType": offer.discount_type,
+            "amount": offer.amount,
+            "minPurchase": offer.min_purchase,
+            "applicableProducts": applicable_products,
+            "offerLimit": offer.offer_limit,
+            "usageCount": offer.usage_count,
+            "startingDate": offer.starting_date.isoformat(),
+            "closingDate": offer.closing_date.isoformat()
+        })
+    
+    return jsonify({"offers": offer_list}), 200
+
+# Update the create_offer function to use IST
+@app.route('/api/offers', methods=['POST'])
+def create_offer():
+    if 'user_id' not in session or session['role'] != 'seller':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    user = User.query.get(session['user_id'])
+    seller = Seller.query.filter_by(user_id=user.id).first()
+    
+    # Validate required fields
+    required_fields = ['title', 'discountType', 'amount', 'minPurchase', 'startingDate', 'closingDate']
+    for field in required_fields:
+        if field not in data:
+            return jsonify({"error": f"Missing required field: {field}"}), 400
+    
+    # Validate dates - parse as IST
+    try:
+        # Parse dates as IST
+        ist_tz = pytz.timezone('Asia/Kolkata')
+        starting_date = datetime.fromisoformat(data['startingDate']).replace(tzinfo=ist_tz).date()
+        closing_date = datetime.fromisoformat(data['closingDate']).replace(tzinfo=ist_tz).date()
+    except ValueError:
+        return jsonify({"error": "Invalid date format"}), 400
+    
+    # Validate discount type
+    if data['discountType'] not in ['percentage', 'fixed']:
+        return jsonify({"error": "Invalid discount type"}), 400
+    
+    # Prepare applicable products
+    applicable_products = data.get('applicableProducts', 'all')
+    if applicable_products != 'all':
+        applicable_products = json.dumps(applicable_products)
+    
+    # Create new offer
+    new_offer = Offer(
+        seller_id=seller.id,
+        title=data['title'],
+        description=data.get('description', ''),
+        discount_type=data['discountType'],
+        amount=float(data['amount']),
+        min_purchase=float(data['minPurchase']),
+        applicable_products=applicable_products,
+        offer_limit=int(data.get('offerLimit', 0)),
+        starting_date=starting_date,
+        closing_date=closing_date
+    )
+    
+    db.session.add(new_offer)
+    db.session.commit()
+    
+    return jsonify({
+        "message": "Offer created successfully",
+        "offerId": new_offer.id
+    }), 201
+
+@app.route('/api/offers/<int:offer_id>', methods=['PUT'])
+def update_offer(offer_id):
+    if 'user_id' not in session or session['role'] != 'seller':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    user = User.query.get(session['user_id'])
+    seller = Seller.query.filter_by(user_id=user.id).first()
+    
+    # Find the offer
+    offer = Offer.query.get(offer_id)
+    if not offer:
+        return jsonify({"error": "Offer not found"}), 404
+    
+    # Check if offer belongs to this seller
+    if offer.seller_id != seller.id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # Update offer fields
+    if 'title' in data:
+        offer.title = data['title']
+    
+    if 'description' in data:
+        offer.description = data['description']
+    
+    if 'discountType' in data:
+        if data['discountType'] not in ['percentage', 'fixed']:
+            return jsonify({"error": "Invalid discount type"}), 400
+        offer.discount_type = data['discountType']
+    
+    if 'amount' in data:
+        offer.amount = float(data['amount'])
+    
+    if 'minPurchase' in data:
+        offer.min_purchase = float(data['minPurchase'])
+    
+    if 'applicableProducts' in data:
+        applicable_products = data['applicableProducts']
+        if applicable_products != 'all':
+            applicable_products = json.dumps(applicable_products)
+        offer.applicable_products = applicable_products
+    
+    if 'offerLimit' in data:
+        offer.offer_limit = int(data['offerLimit'])
+    
+    if 'startingDate' in data:
+        try:
+            offer.starting_date = datetime.fromisoformat(data['startingDate']).date()
+        except ValueError:
+            return jsonify({"error": "Invalid starting date format"}), 400
+    
+    if 'closingDate' in data:
+        try:
+            offer.closing_date = datetime.fromisoformat(data['closingDate']).date()
+        except ValueError:
+            return jsonify({"error": "Invalid closing date format"}), 400
+    
+    db.session.commit()
+    
+    return jsonify({
+        "message": "Offer updated successfully"
+    }), 200
+
+@app.route('/api/offers/<int:offer_id>', methods=['DELETE'])
+def delete_offer(offer_id):
+    if 'user_id' not in session or session['role'] != 'seller':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.get(session['user_id'])
+    seller = Seller.query.filter_by(user_id=user.id).first()
+    
+    # Find the offer
+    offer = Offer.query.get(offer_id)
+    if not offer:
+        return jsonify({"error": "Offer not found"}), 404
+    
+    # Check if offer belongs to this seller
+    if offer.seller_id != seller.id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # Delete offer
+    db.session.delete(offer)
+    db.session.commit()
+    
+    return jsonify({
+        "message": "Offer deleted successfully"
+    }), 200
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -50,6 +50,23 @@ class DeliverySlot(db.Model):
     delivery_fee = db.Column(db.Float, nullable=False)
     seller = db.relationship('Seller', backref=db.backref('delivery_slots', lazy=True))
 
+# Offer Model
+class Offer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    seller_id = db.Column(db.Integer, db.ForeignKey('seller.id'), nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    discount_type = db.Column(db.String(20), nullable=False)  # 'percentage' or 'fixed'
+    amount = db.Column(db.Float, nullable=False)  # percentage or fixed amount
+    min_purchase = db.Column(db.Float, nullable=False, default=0)
+    applicable_products = db.Column(db.Text, default="all")  # 'all' or JSON string of product IDs
+    offer_limit = db.Column(db.Integer, nullable=False, default=0)  # 0 means unlimited
+    usage_count = db.Column(db.Integer, default=0)
+    starting_date = db.Column(db.Date, nullable=False)
+    closing_date = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    seller = db.relationship('Seller', backref=db.backref('offers', lazy=True))
+
 # Product Models
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -92,6 +109,7 @@ class Order(db.Model):
     total_amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default="pending")  # pending, accepted, rejected, packaging, delivering, delivered
     estimated_delivery_time = db.Column(db.DateTime, nullable=True)
+    delivery_person_contact = db.Column(db.String(200), nullable=True)  # Name an  nullable=True)
     delivery_person_contact = db.Column(db.String(200), nullable=True)  # Name and phone of delivery person
     student = db.relationship('Student', backref=db.backref('orders', lazy=True))
     seller = db.relationship('Seller', backref=db.backref('orders', lazy=True))

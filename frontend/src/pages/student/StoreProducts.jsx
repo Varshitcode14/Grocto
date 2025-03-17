@@ -4,12 +4,16 @@ import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import ImageWithFallback from "../../components/ImageWithFallback"
+import OfferBanner from "../../components/OfferBanner"
+import DebugOfferBanner from "../../components/DebugOfferBanner"
 import "./StoreProducts.css"
+import { useModal } from "../../context/ModalContext"
 
 const StoreProducts = () => {
   const { storeId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { showError, showSuccess } = useModal()
   const [store, setStore] = useState(null)
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -102,17 +106,15 @@ const StoreProducts = () => {
         credentials: "include",
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error("Failed to add to cart")
+        throw new Error(data.error || "Failed to add product to cart")
       }
 
-      // Update cart store
-      setCartStore(Number.parseInt(storeId))
-
-      // Show success message
-      alert("Product added to cart!")
+      showSuccess("Added to Cart", "Product has been added to your cart!")
     } catch (error) {
-      setError(error.message || "Error adding to cart")
+      showError("Add to Cart Failed", error.message || "Error adding product to cart")
       console.error("Error adding to cart:", error)
     } finally {
       setAddingToCart((prev) => ({ ...prev, [productId]: false }))
@@ -142,15 +144,27 @@ const StoreProducts = () => {
         {store && (
           <div className="store-header">
             <h1>{store.name}</h1>
-            <p className="store-address">{store.address}</p>
+            <p className="store-address">
+              <i className="fas fa-map-marker-alt"></i> {store.address}
+            </p>
             <div className="store-info">
               <span className="store-hours">
-                Hours: {store.openingTime} - {store.closingTime}
+                <i className="fas fa-clock"></i> Hours: {store.openingTime} - {store.closingTime}
               </span>
-              <span className="store-days">Days: {store.workingDays}</span>
+              <span className="store-days">
+                <i className="fas fa-calendar"></i> Days: {store.workingDays}
+              </span>
             </div>
+            {store.phoneNumber && (
+              <div className="store-contact">
+                <i className="fas fa-phone"></i> Contact: {store.phoneNumber}
+              </div>
+            )}
           </div>
         )}
+
+        {/* Display store-specific offers */}
+        <OfferBanner storeId={storeId} />
 
         <div className="search-bar">
           <input
@@ -204,6 +218,9 @@ const StoreProducts = () => {
           </div>
         )}
       </div>
+
+      {/* Add debug component */}
+      <DebugOfferBanner />
     </div>
   )
 }

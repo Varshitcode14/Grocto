@@ -144,6 +144,14 @@ const SellerDashboard = () => {
               <p>View and update your product inventory</p>
             </Link>
 
+            <Link to="/seller/offers" className="dashboard-action-card">
+              <div className="action-icon">
+                <i className="fas fa-tag"></i>
+              </div>
+              <h3>Manage Offers</h3>
+              <p>Create and manage special offers</p>
+            </Link>
+
             <Link to="/seller/delivery-slots" className="dashboard-action-card">
               <div className="action-icon">
                 <i className="fas fa-clock"></i>

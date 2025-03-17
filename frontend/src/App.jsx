@@ -16,7 +16,7 @@ import Cart from "./pages/student/Cart"
 import Checkout from "./pages/student/Checkout"
 import OrderConfirmation from "./pages/student/OrderConfirmation"
 import OrdersList from "./pages/student/OrdersList"
-import UserProfile from "./pages/student/profile" // Import the new profile component
+import UserProfile from "./pages/student/profile"
 import SellerDashboard from "./pages/seller/Dashboard"
 import InventoryManagement from "./pages/seller/InventoryManagement"
 import AddProduct from "./pages/seller/AddProduct"
@@ -24,10 +24,15 @@ import ProfileSettings from "./pages/seller/ProfileSettings"
 import OrderManagement from "./pages/seller/OrderManagement"
 import OrderDetail from "./pages/seller/OrderDetail"
 import DeliverySlots from "./pages/seller/DeliverySlots"
+import OffersList from "./pages/seller/OffersList"
+import PostOffer from "./pages/seller/PostOffer"
 import Debug from "./pages/Debug"
 import Footer from "./components/Footer"
 import ProtectedRoute from "./components/ProtectedRoute"
 import "./App.css"
+
+// Import the ErrorBoundary at the top of the file
+import ErrorBoundary from "./components/ErrorBoundary"
 
 // Dashboard redirect component
 const DashboardRedirect = () => {
@@ -138,7 +143,6 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                {/* Add the new profile route */}
                 <Route
                   path="/student/profile"
                   element={
@@ -202,6 +206,35 @@ function App() {
                   element={
                     <ProtectedRoute role="seller">
                       <DeliverySlots />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* New Offer Routes */}
+                <Route
+                  path="/seller/offers"
+                  element={
+                    <ProtectedRoute role="seller">
+                      <OffersList />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/seller/offers/new"
+                  element={
+                    <ProtectedRoute role="seller">
+                      <ErrorBoundary>
+                        <PostOffer />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/seller/offers/edit/:offerId"
+                  element={
+                    <ProtectedRoute role="seller">
+                      <ErrorBoundary>
+                        <PostOffer />
+                      </ErrorBoundary>
                     </ProtectedRoute>
                   }
                 />

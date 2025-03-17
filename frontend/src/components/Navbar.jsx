@@ -125,6 +125,11 @@ const Navbar = () => {
                 </Link>
               </li>
               <li className="nav-item">
+                <Link to="/seller/offers" className="nav-link" onClick={() => setIsMenuOpen(false)}>
+                  Offers
+                </Link>
+              </li>
+              <li className="nav-item">
                 <Link to="/seller/delivery-slots" className="nav-link" onClick={() => setIsMenuOpen(false)}>
                   Delivery Slots
                 </Link>

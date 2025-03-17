@@ -1,14 +1,13 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-//import { useNavigate } from "react-router-dom"
-// import { useAuth } from "../../context/AuthContext"
-import "./PostOffer.css";
-import { ToastContainer, toast } from "react-toastify";
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
+import { useAuth } from "../../context/AuthContext"
+import "./PostOffer.css"
 
 const PostOffer = () => {
-  //const navigate = useNavigate()
-  // const { user } = useAuth()
+  const navigate = useNavigate()
+  const { user } = useAuth()
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -17,72 +16,124 @@ const PostOffer = () => {
     startingDate: "",
     closingDate: "",
     amount: "",
-  });
+    discountType: "Percentage", // Default to percentage
+  })
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false)
+  const [notification, setNotification] = useState({ show: false, message: "", type: "" })
+
+  useEffect(() => {
+    // Hide notification after 3 seconds
+    if (notification.show) {
+      const timer = setTimeout(() => {
+        setNotification({ show: false, message: "", type: "" })
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [notification.show])
+
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value } = e.target
     setFormData({
       ...formData,
       [name]: value,
-    });
-  };
+    })
+  }
+
+  const showNotification = (message, type) => {
+    setNotification({ show: true, message, type })
+  }
+
+  // Function to convert date to IST format
+  const formatDateToIST = (dateString) => {
+    if (!dateString) return ""
+
+    // Create a date object with the input date
+    const date = new Date(dateString)
+
+    // Format the date to ISO string with IST timezone offset (+05:30)
+    // This ensures the date is interpreted correctly on the server
+    const istDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().split("T")[0]
+
+    return istDate
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
 
     try {
-      setLoading(true);
-      // Create form data for file upload
-      const offerData = new FormData();
-      offerData.append("title", formData.title);
-      offerData.append("description", formData.description);
-      offerData.append("minPurchase", formData.minPurchase);
-      offerData.append("offerLimit", formData.offerLimit);
-      offerData.append("startingDate", formData.startingDate);
-      offerData.append("closingDate", formData.closingDate);
-      offerData.append("amount", formData.amount);
+      setLoading(true)
 
-      //   const response = await fetch("http://localhost:5000/api/offers", {
-      //     method: "POST",
-      //     body: offerData,
-      //     credentials: "include",
-      //   })
+      // Validate dates
+      const startDate = new Date(formData.startingDate)
+      const endDate = new Date(formData.closingDate)
+      const today = new Date()
 
-      //   if (!response.ok) {
-      //     const data = await response.json()
-      //     throw new Error(data.error || "Failed to post offer")
-      //   }
+      if (startDate < today) {
+        showNotification("Starting date cannot be in the past", "error")
+        setLoading(false)
+        return
+      }
+
+      if (endDate <= startDate) {
+        showNotification("Closing date must be after starting date", "error")
+        setLoading(false)
+        return
+      }
+
+      // Convert dates to IST format
+      const startingDateIST = formatDateToIST(formData.startingDate)
+      const closingDateIST = formatDateToIST(formData.closingDate)
+
+      // Create JSON data for API
+      const offerData = {
+        title: formData.title,
+        description: formData.description,
+        minPurchase: Number.parseFloat(formData.minPurchase),
+        offerLimit: Number.parseInt(formData.offerLimit),
+        startingDate: startingDateIST,
+        closingDate: closingDateIST,
+        amount: Number.parseFloat(formData.amount),
+        discountType: formData.discountType === "Percentage" ? "percentage" : "fixed",
+      }
+
+      console.log("Submitting offer data:", offerData)
+
+      const response = await fetch("http://localhost:5000/api/offers", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(offerData),
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || "Failed to post offer")
+      }
 
       // Redirect to inventory page
-      // navigate("/seller/inventory")
-      toast.success("Offer posted successfully");
+      showNotification("Offer posted successfully", "success")
+      setTimeout(() => {
+        navigate("/seller/offers")
+      }, 2000)
     } catch (error) {
-      toast.error("Offer can not be posted");
-      console.error("Error posting offer:", error);
+      showNotification("Offer cannot be posted: " + error.message, "error")
+      console.error("Error posting offer:", error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="post-offer-page">
-      <ToastContainer
-        position="bottom-right"
-        autoClose={3000}
-        hideProgressBar={true}
-        newestOnTop={false}
-        closeOnClick={false}
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="dark"
-      />
+      {notification.show && <div className={`notification ${notification.type}`}>{notification.message}</div>}
 
       <div className="container">
         <div className="page-header">
-          <h1>Post New offer</h1>
+          <h1>Post New Offer</h1>
+          <p>All dates and times are in Indian Standard Time (IST)</p>
         </div>
 
         <div className="offer-form-container">
@@ -122,16 +173,12 @@ const PostOffer = () => {
                   gap: "10px",
                 }}
               >
-                <label htmlFor="dsicounttype" style={{ margin: "0" }}>
-                  Discount Type :
+                <label htmlFor="discountType" style={{ margin: "0" }}>
+                  Discount Type:
                 </label>
-                <select name="" id="">
-                  <option value="Percentage" id="1">
-                    Percentage
-                  </option>
-                  <option value="Fixed Amount" id="2">
-                    Fixed Amount
-                  </option>
+                <select name="discountType" id="discountType" value={formData.discountType} onChange={handleChange}>
+                  <option value="Percentage">Percentage</option>
+                  <option value="Fixed Amount">Fixed Amount</option>
                 </select>
               </div>
               <div
@@ -143,8 +190,8 @@ const PostOffer = () => {
                   gap: "10px",
                 }}
               >
-                <label htmlFor="dsicounttype" style={{ margin: "0" }}>
-                  Discount Amount :
+                <label htmlFor="amount" style={{ margin: "0" }}>
+                  Discount Amount:
                 </label>
                 <input
                   type="number"
@@ -160,10 +207,10 @@ const PostOffer = () => {
 
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="price">Minimum Purchase (₹)</label>
+                <label htmlFor="minPurchase">Minimum Purchase (₹)</label>
                 <input
                   type="number"
-                  id="price"
+                  id="minPurchase"
                   name="minPurchase"
                   value={formData.minPurchase}
                   onChange={handleChange}
@@ -204,34 +251,31 @@ const PostOffer = () => {
 
             <div className="form-row" style={{ display: "flex" }}>
               <div className="form-group">
-                <label htmlFor="startingDate">Starting Date</label>
+                <label htmlFor="startingDate">Starting Date (IST)</label>
                 <input
                   type="date"
                   id="startingDate"
                   name="startingDate"
                   value={formData.startingDate}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
               <div className="form-group">
-                <label htmlFor="closingDate">Closing Date</label>
+                <label htmlFor="closingDate">Closing Date (IST)</label>
                 <input
                   type="date"
                   id="closingDate"
                   name="closingDate"
                   value={formData.closingDate}
                   onChange={handleChange}
+                  required
                 />
               </div>
             </div>
             <div className="form-actions">
-              <button
-                type="button"
-                className="button1"
-                // onClick={() => navigate("/seller/inventory")}
-                disabled={loading}
-              >
+              <button type="button" className="button1" onClick={() => navigate("/seller/offers")} disabled={loading}>
                 Cancel
               </button>
               <button type="submit" className="button2" disabled={loading}>
@@ -242,7 +286,8 @@ const PostOffer = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default PostOffer;
+export default PostOffer
+

@@ -331,16 +331,23 @@ const Checkout = () => {
         ? formData.newDeliveryAddress
         : savedAddresses.find((addr) => addr.id.toString() === formData.deliveryAddressId)?.address
 
+      // Create JSON data for API
+      const orderData = {
+        deliveryAddress: isAddingNewAddress
+          ? formData.newDeliveryAddress
+          : savedAddresses.find((addr) => addr.id.toString() === formData.deliveryAddressId)?.address,
+        deliveryStartTime: formData.deliveryStartTime,
+        deliveryEndTime: formData.deliveryEndTime,
+      }
+
+      console.log("Submitting order data:", orderData)
+
       const response = await fetch("http://localhost:5000/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          deliveryAddress,
-          deliveryStartTime: formData.deliveryStartTime,
-          deliveryEndTime: formData.deliveryEndTime,
-        }),
+        body: JSON.stringify(orderData),
         credentials: "include",
       })
 

@@ -3,13 +3,16 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "../../context/AuthContext"
 import ImageWithFallback from "../../components/ImageWithFallback"
+import OfferBanner from "../../components/OfferBanner"
 import "./ProductList.css"
 // Add useNavigate import at the top
 import { useNavigate } from "react-router-dom"
+import { useModal } from "../../context/ModalContext"
 
 const ProductList = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { showError, showSuccess } = useModal()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -92,12 +95,12 @@ const ProductList = () => {
       setCartStore(sellerId)
 
       // Show success message
-      alert("Product added to cart!")
+      showSuccess("Added to Cart", "Product added to cart!")
 
       // Navigate to the store page
       navigate(`/student/store/${sellerId}`)
     } catch (error) {
-      setError(error.message || "Error adding to cart")
+      showError("Add to Cart Failed", error.message || "Error adding to cart")
       console.error("Error adding to cart:", error)
     } finally {
       setAddingToCart((prev) => ({ ...prev, [productId]: false }))
@@ -118,6 +121,9 @@ const ProductList = () => {
           <h1>Browse Products</h1>
           <p>Find groceries from local stores</p>
         </div>
+
+        {/* Display global offers */}
+        <OfferBanner />
 
         <div className="search-bar">
           <input

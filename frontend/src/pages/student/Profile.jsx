@@ -132,29 +132,12 @@ const UserProfile = () => {
     })
   }
 
-  const handleSaveProfile = async () => {
+  const saveProfileData = async (profileData) => {
     try {
-      // Validate required fields
-      if (!formData.phone) {
-        showError("Missing Information", "Phone number is required")
-        return
-      }
-
-      setMessage({ type: "", text: "" }) // Clear any existing messages
       setLoading(true)
 
-      // Prepare the data to send to the backend
-      const profileData = {
-        name: formData.name,
-        phone: formData.phone,
-        department: formData.department,
-        addresses: addresses,
-        notifications: notifications,
-      }
+      console.log("Saving profile data:", profileData)
 
-      console.log("Sending profile data:", profileData)
-
-      // Send the data to the backend
       const response = await fetch("http://localhost:5000/api/student/profile", {
         method: "PUT",
         headers: {
@@ -172,24 +155,41 @@ const UserProfile = () => {
       // Refresh auth status to get updated user data
       await checkAuthStatus()
 
-      // Fetch updated profile data
-      await fetchProfileData()
+      console.log("Profile saved successfully")
+    } catch (error) {
+      console.error("Error saving profile:", error)
+      setMessage({ type: "error", text: error.message || "Failed to save profile" })
+    } finally {
+      setLoading(false)
+    }
+  }
 
-      // Check if profile is complete with the updated data
-      const isComplete = checkProfileComplete({
+  const handleSaveProfile = async () => {
+    try {
+      // Validate required fields
+      if (!formData.phone) {
+        showError("Missing Information", "Phone number is required")
+        return
+      }
+
+      setMessage({ type: "", text: "" }) // Clear any existing messages
+
+      // Prepare the data to send to the backend
+      const profileData = {
+        name: formData.name,
         phone: formData.phone,
+        department: formData.department,
         addresses: addresses,
-      })
+        notifications: notifications,
+      }
 
-      setIsProfileComplete(isComplete)
+      await saveProfileData(profileData)
 
       // Show success message
       showSuccess("Profile Updated", "Your profile has been updated successfully!")
     } catch (error) {
       console.error("Error updating profile:", error)
       showError("Update Failed", error.message || "Failed to update profile. Please try again.")
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -206,17 +206,29 @@ const UserProfile = () => {
       id: Date.now(), // Use timestamp as temporary ID
     }
 
+    let updatedAddresses = [...addresses]
+
     // If this is the first address or marked as default, make it default
     if (addresses.length === 0 || newAddress.isDefault) {
       // Set all other addresses to non-default
-      const updatedAddresses = addresses.map((addr) => ({
+      updatedAddresses = addresses.map((addr) => ({
         ...addr,
         isDefault: false,
       }))
-      setAddresses([...updatedAddresses, addressToAdd])
+      updatedAddresses.push(addressToAdd)
     } else {
-      setAddresses([...addresses, addressToAdd])
+      updatedAddresses.push(addressToAdd)
     }
+
+    setAddresses(updatedAddresses)
+
+    // Save the updated addresses to the server immediately
+    const profileData = {
+      ...formData,
+      addresses: updatedAddresses,
+    }
+
+    saveProfileData(profileData)
 
     // Reset new address form
     setNewAddress({
@@ -229,7 +241,7 @@ const UserProfile = () => {
     // Check if profile is complete
     checkProfileComplete({
       phone: formData.phone,
-      addresses: [...addresses, addressToAdd],
+      addresses: updatedAddresses,
     })
 
     // Show success message
@@ -241,7 +253,16 @@ const UserProfile = () => {
       ...addr,
       isDefault: addr.id === id,
     }))
+
     setAddresses(updatedAddresses)
+
+    // Save the updated addresses to the server immediately
+    const profileData = {
+      ...formData,
+      addresses: updatedAddresses,
+    }
+
+    saveProfileData(profileData)
 
     // Show success message
     showSuccess("Address Updated", "Default address has been updated!")
@@ -256,6 +277,14 @@ const UserProfile = () => {
     }
 
     setAddresses(updatedAddresses)
+
+    // Save the updated addresses to the server immediately
+    const profileData = {
+      ...formData,
+      addresses: updatedAddresses,
+    }
+
+    saveProfileData(profileData)
 
     // Check if profile is complete
     checkProfileComplete({

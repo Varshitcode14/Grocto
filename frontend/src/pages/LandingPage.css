@@ -172,6 +172,13 @@
   font-size: 1.1rem;
 }
 
+/* Add these styles to the existing LandingPage.css file */
+
+.offers-section {
+  padding: 1rem 0;
+  background-color: #f9f9f9;
+}
+
 /* Responsive Design */
 @media screen and (max-width: 960px) {
   .hero-container {
@@ -205,6 +212,12 @@
     flex-direction: column;
     max-width: 300px;
     margin: 0 auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .offers-section {
+    padding: 0.5rem 0;
   }
 }
 

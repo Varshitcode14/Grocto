@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom"
 import "./LandingPage.css"
+import OfferBanner from "../components/OfferBanner"
 
 const LandingPage = () => {
   return (
@@ -22,6 +23,13 @@ const LandingPage = () => {
               </Link>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Offers Banner Section */}
+      <section className="section offers-section">
+        <div className="container">
+          <OfferBanner />
         </div>
       </section>
 
