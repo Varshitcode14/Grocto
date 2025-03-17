@@ -566,6 +566,144 @@ def add_product():
         }
     }), 201
 
+# Add this route after the add_product route
+
+@app.route('/api/products/<int:product_id>', methods=['GET'])
+def get_product(product_id):
+    product = Product.query.get(product_id)
+    
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+    
+    # If user is a seller, check if they own this product
+    if 'user_id' in session and session['role'] == 'seller':
+        user = User.query.get(session['user_id'])
+        seller = Seller.query.filter_by(user_id=user.id).first()
+        
+        if product.seller_id != seller.id:
+            return jsonify({"error": "Unauthorized"}), 401
+    
+    image_url = None
+    if product.image_path:
+        image_url = f"{request.host_url.rstrip('/')}/api/uploads/{product.image_path}"
+    
+    return jsonify({
+        "product": {
+            "id": product.id,
+            "name": product.name,
+            "description": product.description,
+            "price": product.price,
+            "stock": product.stock,
+            "image": image_url
+        }
+    }), 200
+
+@app.route('/api/products/<int:product_id>', methods=['PUT'])
+def update_product(product_id):
+    if 'user_id' not in session or session['role'] != 'seller':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.get(session['user_id'])
+    seller = Seller.query.filter_by(user_id=user.id).first()
+    
+    # Check if product exists and belongs to this seller
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+    
+    if product.seller_id != seller.id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # Get product data from form
+    name = request.form.get('name')
+    description = request.form.get('description', '')
+    price = request.form.get('price')
+    stock = request.form.get('stock')
+    
+    # Validate required fields
+    if not name or not price or not stock:
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    try:
+        price = float(price)
+        stock = int(stock)
+    except ValueError:
+        return jsonify({"error": "Invalid price or stock value"}), 400
+    
+    # Update product
+    product.name = name
+    product.description = description
+    product.price = price
+    product.stock = stock
+    
+    # Handle image upload if present
+    if 'image' in request.files:
+        image = request.files['image']
+        if image and image.filename:
+            # Generate secure filename
+            filename = secure_filename(f"{int(datetime.utcnow().timestamp())}_{image.filename}")
+            image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            
+            # Save the image
+            image.save(image_path)
+            
+            # Set image path in product
+            product.image_path = filename
+    
+    db.session.commit()
+    
+    # Return updated product data
+    image_url = None
+    if product.image_path:
+        image_url = f"{request.host_url.rstrip('/')}/api/uploads/{product.image_path}"
+    
+    return jsonify({
+        "message": "Product updated successfully",
+        "product": {
+            "id": product.id,
+            "name": product.name,
+            "description": product.description,
+            "price": product.price,
+            "stock": product.stock,
+            "image": image_url
+        }
+    }), 200
+
+@app.route('/api/products/<int:product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    if 'user_id' not in session or session['role'] != 'seller':
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    user = User.query.get(session['user_id'])
+    seller = Seller.query.filter_by(user_id=user.id).first()
+    
+    # Check if product exists and belongs to this seller
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+    
+    if product.seller_id != seller.id:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # Delete the product
+    try:
+        # Delete the product image if it exists
+        if product.image_path:
+            image_path = os.path.join(app.config['UPLOAD_FOLDER'], product.image_path)
+            if os.path.exists(image_path):
+                os.remove(image_path)
+        
+        # Delete the product from the database
+        db.session.delete(product)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Product deleted successfully"
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to delete product: {str(e)}"}), 500
+
 # Cart Routes
 @app.route('/api/cart', methods=['GET'])
 def get_cart():

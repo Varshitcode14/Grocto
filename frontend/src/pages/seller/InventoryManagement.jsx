@@ -5,6 +5,8 @@ import { Link } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import ImageWithFallback from "../../components/ImageWithFallback"
 import "./InventoryManagement.css"
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
 
 const InventoryManagement = () => {
   const { user } = useAuth()
@@ -13,6 +15,8 @@ const InventoryManagement = () => {
   const [error, setError] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [deleting, setDeleting] = useState({})
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [productToDelete, setProductToDelete] = useState(null)
 
   useEffect(() => {
     fetchProducts()
@@ -40,30 +44,39 @@ const InventoryManagement = () => {
     }
   }
 
-  const deleteProduct = async (productId) => {
-    if (!window.confirm("Are you sure you want to delete this product?")) {
-      return
-    }
+  const confirmDelete = (productId) => {
+    setProductToDelete(productId)
+    setDeleteModalOpen(true)
+  }
+
+  const deleteProduct = async () => {
+    if (!productToDelete) return
 
     try {
-      setDeleting((prev) => ({ ...prev, [productId]: true }))
-
-      const response = await fetch(`http://localhost:5000/api/products/${productId}`, {
+      setLoading(true)
+      const response = await fetch(`http://localhost:5000/api/products/${productToDelete}`, {
         method: "DELETE",
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
       })
 
       if (!response.ok) {
-        throw new Error("Failed to delete product")
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to delete product")
       }
 
-      // Remove product from state
-      setProducts(products.filter((p) => p.id !== productId))
+      // Remove the product from the state
+      setProducts(products.filter((product) => product.id !== productToDelete))
+      toast.success("Product deleted successfully")
+      setDeleteModalOpen(false)
+      setProductToDelete(null)
     } catch (error) {
-      setError(error.message || "Error deleting product")
       console.error("Error deleting product:", error)
+      toast.error(error.message || "Failed to delete product")
     } finally {
-      setDeleting((prev) => ({ ...prev, [productId]: false }))
+      setLoading(false)
     }
   }
 
@@ -138,12 +151,8 @@ const InventoryManagement = () => {
                   <Link to={`/seller/edit-product/${product.id}`} className="edit-btn">
                     Edit
                   </Link>
-                  <button
-                    className="delete-btn"
-                    onClick={() => deleteProduct(product.id)}
-                    disabled={deleting[product.id]}
-                  >
-                    {deleting[product.id] ? "Deleting..." : "Delete"}
+                  <button className="delete-btn" onClick={() => confirmDelete(product.id)} disabled={loading}>
+                    Delete
                   </button>
                 </div>
               </div>
@@ -158,6 +167,29 @@ const InventoryManagement = () => {
           </div>
         )}
       </div>
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3 className="modal-title">Confirm Delete</h3>
+            <p>Are you sure you want to delete this product? This action cannot be undone.</p>
+            <div className="modal-actions">
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setDeleteModalOpen(false)
+                  setProductToDelete(null)
+                }}
+              >
+                Cancel
+              </button>
+              <button className="btn btn-danger" onClick={deleteProduct} disabled={loading}>
+                {loading ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

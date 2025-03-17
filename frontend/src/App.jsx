@@ -20,6 +20,7 @@ import UserProfile from "./pages/student/profile"
 import SellerDashboard from "./pages/seller/Dashboard"
 import InventoryManagement from "./pages/seller/InventoryManagement"
 import AddProduct from "./pages/seller/AddProduct"
+import EditProduct from "./pages/seller/EditProduct"
 import ProfileSettings from "./pages/seller/ProfileSettings"
 import OrderManagement from "./pages/seller/OrderManagement"
 import OrderDetail from "./pages/seller/OrderDetail"
@@ -174,6 +175,14 @@ function App() {
                   element={
                     <ProtectedRoute role="seller">
                       <AddProduct />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/seller/edit-product/:productId"
+                  element={
+                    <ProtectedRoute role="seller">
+                      <EditProduct />
                     </ProtectedRoute>
                   }
                 />
