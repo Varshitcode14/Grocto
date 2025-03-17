@@ -3,11 +3,13 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
+import { useModal } from "../../context/ModalContext"
 import "./AddProduct.css"
 
 const AddProduct = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { showError, showSuccess } = useModal()
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -41,7 +43,6 @@ const AddProduct = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError("")
 
     try {
       setLoading(true)
@@ -78,11 +79,12 @@ const AddProduct = () => {
       }
 
       console.log("Product added successfully:", data)
+      showSuccess("Product Added", "Your product has been added successfully!")
 
       // Redirect to inventory page
       navigate("/seller/inventory")
     } catch (error) {
-      setError(error.message || "Error adding product")
+      showError("Add Product Failed", error.message || "Error adding product")
       console.error("Error adding product:", error)
     } finally {
       setLoading(false)
@@ -96,8 +98,6 @@ const AddProduct = () => {
           <h1>Add New Product</h1>
           <p>Add a new product to your inventory</p>
         </div>
-
-        {error && <div className="error-message">{error}</div>}
 
         <div className="product-form-container">
           <form className="product-form" onSubmit={handleSubmit}>

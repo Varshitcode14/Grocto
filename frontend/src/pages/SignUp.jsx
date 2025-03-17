@@ -3,11 +3,13 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import { useModal } from "../context/ModalContext"
 import "./Auth.css"
 
 const SignUp = () => {
   const navigate = useNavigate()
   const { register } = useAuth()
+  const { showError, showSuccess } = useModal()
   const [userType, setUserType] = useState("student")
   const [formData, setFormData] = useState({
     name: "",
@@ -23,7 +25,6 @@ const SignUp = () => {
     phoneNumber: "",
   })
 
-  const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
   const handleChange = (e) => {
@@ -44,21 +45,20 @@ const SignUp = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError("")
 
     // Validate form
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match")
+      showError("Password Error", "Passwords do not match")
       return
     }
 
     if (userType === "student" && !formData.collegeId) {
-      setError("College ID is required")
+      showError("Missing Information", "College ID is required")
       return
     }
 
     if (userType === "seller" && (!sellerData.storeName || !sellerData.storeAddress || !sellerData.phoneNumber)) {
-      setError("All seller fields are required")
+      showError("Missing Information", "All seller fields are required")
       return
     }
 
@@ -82,13 +82,14 @@ const SignUp = () => {
       }
 
       await register(userData)
+      showSuccess("Registration Successful", "Your account has been created successfully. You can now sign in.")
       navigate("/signin")
     } catch (error) {
       console.error("Registration error:", error)
       if (error.message && error.message.includes("already registered")) {
-        setError("This email is already registered. Please use a different email or sign in.")
+        showError("Registration Failed", "This email is already registered. Please use a different email or sign in.")
       } else {
-        setError(error.message || "Registration failed. Please try again.")
+        showError("Registration Failed", error.message || "Registration failed. Please try again.")
       }
     } finally {
       setLoading(false)
@@ -118,8 +119,6 @@ const SignUp = () => {
                 Grocery Seller
               </button>
             </div>
-
-            {error && <div className="error-message">{error}</div>}
 
             <form className="auth-form" onSubmit={handleSubmit}>
               <div className="form-group">

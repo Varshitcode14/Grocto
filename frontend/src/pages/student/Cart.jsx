@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
+import { useModal } from "../../context/ModalContext"
 import "./Cart.css"
 
 const Cart = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { showError, showSuccess, showWarning } = useModal()
   const [cartItems, setCartItems] = useState([])
   const [store, setStore] = useState(null)
   const [summary, setSummary] = useState({
@@ -54,7 +56,7 @@ const Cart = () => {
     }
   }
 
-  const updateQuantity = async (itemId, quantity) => {
+  const updateQuantity = async (itemId, quantity, productName) => {
     try {
       setUpdating((prev) => ({ ...prev, [itemId]: true }))
 
@@ -73,15 +75,54 @@ const Cart = () => {
 
       // Refresh cart
       fetchCart()
+
+      // Show success modal
+      showSuccess(
+        "Cart Updated",
+        <p>
+          Quantity of <strong>{productName}</strong> has been updated to {quantity}.
+        </p>,
+      )
     } catch (error) {
-      setError(error.message || "Error updating cart")
+      showError("Update Failed", error.message || "Error updating cart")
       console.error("Error updating cart:", error)
     } finally {
       setUpdating((prev) => ({ ...prev, [itemId]: false }))
     }
   }
 
-  const removeItem = async (itemId) => {
+  const removeItem = async (itemId, productName) => {
+    // Show confirmation modal
+    showWarning(
+      "Confirm Removal",
+      <div>
+        <p>
+          Are you sure you want to remove <strong>{productName}</strong> from your cart?
+        </p>
+        <div className="modal-actions">
+          <button
+            className="btn btn-outline"
+            onClick={() => {
+              // Just close the modal
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              // Proceed with removal
+              proceedWithRemoval(itemId, productName)
+            }}
+          >
+            Remove
+          </button>
+        </div>
+      </div>,
+    )
+  }
+
+  const proceedWithRemoval = async (itemId, productName) => {
     try {
       setUpdating((prev) => ({ ...prev, [itemId]: true }))
 
@@ -96,8 +137,16 @@ const Cart = () => {
 
       // Refresh cart
       fetchCart()
+
+      // Show success modal
+      showSuccess(
+        "Item Removed",
+        <p>
+          <strong>{productName}</strong> has been removed from your cart.
+        </p>,
+      )
     } catch (error) {
-      setError(error.message || "Error removing item")
+      showError("Remove Failed", error.message || "Error removing item")
       console.error("Error removing item:", error)
     } finally {
       setUpdating((prev) => ({ ...prev, [itemId]: false }))
@@ -115,8 +164,6 @@ const Cart = () => {
           <h1>Your Cart</h1>
           <p>Review your selected items</p>
         </div>
-
-        {error && <div className="error-message">{error}</div>}
 
         {loading ? (
           <div className="loading">Loading cart...</div>
@@ -155,7 +202,7 @@ const Cart = () => {
                   <div className="item-quantity">
                     <button
                       className="quantity-btn"
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                      onClick={() => updateQuantity(item.id, item.quantity - 1, item.product.name)}
                       disabled={updating[item.id] || item.quantity <= 1}
                     >
                       -
@@ -163,7 +210,7 @@ const Cart = () => {
                     <span className="quantity">{item.quantity}</span>
                     <button
                       className="quantity-btn"
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      onClick={() => updateQuantity(item.id, item.quantity + 1, item.product.name)}
                       disabled={updating[item.id]}
                     >
                       +
@@ -173,7 +220,11 @@ const Cart = () => {
                     <p>₹{item.subtotal.toFixed(2)}</p>
                   </div>
                   <div className="item-actions">
-                    <button className="remove-btn" onClick={() => removeItem(item.id)} disabled={updating[item.id]}>
+                    <button
+                      className="remove-btn"
+                      onClick={() => removeItem(item.id, item.product.name)}
+                      disabled={updating[item.id]}
+                    >
                       {updating[item.id] ? "Removing..." : "Remove"}
                     </button>
                   </div>

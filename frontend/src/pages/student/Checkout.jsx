@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
+import { useModal } from "../../context/ModalContext"
 import ImageWithFallback from "../../components/ImageWithFallback"
 import "./Checkout.css"
 
 const Checkout = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { showError, showSuccess, showWarning } = useModal()
   const [cartItems, setCartItems] = useState([])
   const [store, setStore] = useState(null)
   const [deliverySlots, setDeliverySlots] = useState([])
@@ -66,7 +68,7 @@ const Checkout = () => {
         total: data.summary.subtotal, // Will be updated when slot is selected
       })
     } catch (error) {
-      setError(error.message || "Error fetching cart")
+      showError("Error", error.message || "Error fetching cart")
       console.error("Error fetching cart:", error)
     } finally {
       setLoading(false)
@@ -141,7 +143,7 @@ const Checkout = () => {
 
       // Check if interval is at least 1 hour
       if (endMinutes - startMinutes < 60) {
-        setError("Delivery time interval must be at least 1 hour")
+        showWarning("Invalid Time Range", "Delivery time interval must be at least 1 hour")
         return
       }
 
@@ -174,7 +176,14 @@ const Checkout = () => {
           total: prev.subtotal + matchingSlot.deliveryFee,
         }))
       } else {
-        setError("Selected time does not match any available delivery slots")
+        showWarning(
+          "Invalid Time Range",
+          <div>
+            <p>Selected time does not match any available delivery slots.</p>
+            <p>Please select a time within one of the available slots.</p>
+          </div>,
+        )
+
         setFormData((prev) => ({
           ...prev,
           selectedSlotId: null,
@@ -195,22 +204,28 @@ const Checkout = () => {
 
     // Validate address selection
     if (isAddingNewAddress && !formData.newDeliveryAddress.trim()) {
-      setError("Please enter a delivery address")
+      showError("Missing Information", "Please enter a delivery address")
       return
     }
 
     if (!isAddingNewAddress && !formData.deliveryAddressId) {
-      setError("Please select a delivery address")
+      showError("Missing Information", "Please select a delivery address")
       return
     }
 
     if (!formData.deliveryStartTime || !formData.deliveryEndTime) {
-      setError("Please select delivery time")
+      showError("Missing Information", "Please select delivery time")
       return
     }
 
     if (!formData.selectedSlotId) {
-      setError("Selected time does not match any available delivery slots")
+      showError(
+        "Invalid Selection",
+        <div>
+          <p>Selected time does not match any available delivery slots.</p>
+          <p>Please select a time within one of the available slots.</p>
+        </div>,
+      )
       return
     }
 
@@ -243,10 +258,21 @@ const Checkout = () => {
 
       const data = await response.json()
 
-      // Navigate to order confirmation page
-      navigate(`/student/order-confirmation/${data.orderId}`)
+      showSuccess(
+        "Order Placed Successfully",
+        <div>
+          <p>Your order has been placed successfully!</p>
+          <p>Order ID: #{data.orderId}</p>
+          <p>You will be redirected to the order confirmation page.</p>
+        </div>,
+      )
+
+      // Navigate to order confirmation page after a short delay
+      setTimeout(() => {
+        navigate(`/student/order-confirmation/${data.orderId}`)
+      }, 2000)
     } catch (error) {
-      setError(error.message || "Error placing order")
+      showError("Order Failed", error.message || "Error placing order")
       console.error("Error placing order:", error)
     } finally {
       setProcessing(false)

@@ -3,17 +3,18 @@
 import { useState, useEffect } from "react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
+import { useModal } from "../context/ModalContext"
 import "./Auth.css"
 
 const SignIn = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, login } = useAuth()
+  const { showError } = useModal()
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   })
-  const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
   // Redirect if already logged in
@@ -37,7 +38,6 @@ const SignIn = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError("")
 
     try {
       setLoading(true)
@@ -50,7 +50,7 @@ const SignIn = () => {
         navigate("/seller") // Redirect to seller dashboard
       }
     } catch (error) {
-      setError(error.message || "Invalid email or password")
+      showError("Login Failed", error.message || "Invalid email or password")
     } finally {
       setLoading(false)
     }
@@ -62,8 +62,6 @@ const SignIn = () => {
         <div className="auth-container">
           <div className="auth-form-container">
             <h2 className="auth-title">Sign In to Grocto</h2>
-
-            {error && <div className="error-message">{error}</div>}
 
             <form className="auth-form" onSubmit={handleSubmit}>
               <div className="form-group">

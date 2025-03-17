@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "../../context/AuthContext"
+import { useModal } from "../../context/ModalContext"
 import "./Profile.css"
 
 const UserProfile = () => {
   const { user, checkAuthStatus } = useAuth()
+  const { showError, showSuccess } = useModal()
   // State for Profile
   const [formData, setFormData] = useState({
     name: "",
@@ -130,12 +132,11 @@ const UserProfile = () => {
     })
   }
 
-  // Save Profile Changes
   const handleSaveProfile = async () => {
     try {
       // Validate required fields
       if (!formData.phone) {
-        setMessage({ type: "error", text: "Phone number is required" })
+        showError("Missing Information", "Phone number is required")
         return
       }
 
@@ -183,25 +184,19 @@ const UserProfile = () => {
       setIsProfileComplete(isComplete)
 
       // Show success message
-      setMessage({ type: "success", text: "Profile updated successfully!" })
-
-      // Clear message after 3 seconds
-      setTimeout(() => {
-        setMessage({ type: "", text: "" })
-      }, 3000)
+      showSuccess("Profile Updated", "Your profile has been updated successfully!")
     } catch (error) {
       console.error("Error updating profile:", error)
-      setMessage({ type: "error", text: error.message || "Failed to update profile. Please try again." })
+      showError("Update Failed", error.message || "Failed to update profile. Please try again.")
     } finally {
       setLoading(false)
     }
   }
 
-  // Add new address
   const handleAddAddress = () => {
     // Validate address
     if (!newAddress.name || !newAddress.address) {
-      setMessage({ type: "error", text: "Address name and details are required" })
+      showError("Missing Information", "Address name and details are required")
       return
     }
 
@@ -238,15 +233,9 @@ const UserProfile = () => {
     })
 
     // Show success message
-    setMessage({ type: "success", text: "Address added successfully!" })
-
-    // Clear message after 3 seconds
-    setTimeout(() => {
-      setMessage({ type: "", text: "" })
-    }, 3000)
+    showSuccess("Address Added", "New address has been added successfully!")
   }
 
-  // Set address as default
   const handleSetDefaultAddress = (id) => {
     const updatedAddresses = addresses.map((addr) => ({
       ...addr,
@@ -255,15 +244,9 @@ const UserProfile = () => {
     setAddresses(updatedAddresses)
 
     // Show success message
-    setMessage({ type: "success", text: "Default address updated!" })
-
-    // Clear message after 3 seconds
-    setTimeout(() => {
-      setMessage({ type: "", text: "" })
-    }, 3000)
+    showSuccess("Address Updated", "Default address has been updated!")
   }
 
-  // Delete address
   const handleDeleteAddress = (id) => {
     const updatedAddresses = addresses.filter((addr) => addr.id !== id)
 
@@ -281,12 +264,7 @@ const UserProfile = () => {
     })
 
     // Show success message
-    setMessage({ type: "success", text: "Address deleted!" })
-
-    // Clear message after 3 seconds
-    setTimeout(() => {
-      setMessage({ type: "", text: "" })
-    }, 3000)
+    showSuccess("Address Deleted", "Address has been deleted successfully!")
   }
 
   if (loading && !user) {
