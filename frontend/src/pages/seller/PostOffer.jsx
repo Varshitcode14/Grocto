@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
+import ProductSelectionModal from "../../components/ProductSelectionModal"
 import "./PostOffer.css"
 
 const PostOffer = () => {
@@ -11,14 +12,17 @@ const PostOffer = () => {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
+    discountType: "Percentage",
+    amount: "",
     minPurchase: "",
     offerLimit: "",
     startingDate: "",
     closingDate: "",
-    amount: "",
-    discountType: "Percentage", // Default to percentage
+    applicableProducts: "all", // Default to 'all'
   })
 
+  const [selectedProducts, setSelectedProducts] = useState([])
+  const [showProductModal, setShowProductModal] = useState(false)
   const [loading, setLoading] = useState(false)
   const [notification, setNotification] = useState({ show: false, message: "", type: "" })
 
@@ -58,6 +62,25 @@ const PostOffer = () => {
     return istDate
   }
 
+  const openProductSelectionModal = () => {
+    setShowProductModal(true)
+  }
+
+  const handleProductSelection = (products) => {
+    setSelectedProducts(products)
+    if (products.length > 0) {
+      setFormData({
+        ...formData,
+        applicableProducts: "specific",
+      })
+    } else {
+      setFormData({
+        ...formData,
+        applicableProducts: "all",
+      })
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -95,6 +118,7 @@ const PostOffer = () => {
         closingDate: closingDateIST,
         amount: Number.parseFloat(formData.amount),
         discountType: formData.discountType === "Percentage" ? "percentage" : "fixed",
+        applicableProducts: formData.applicableProducts === "all" ? "all" : selectedProducts,
       }
 
       console.log("Submitting offer data:", offerData)
@@ -222,13 +246,15 @@ const PostOffer = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="products">Applicable Products</label>
+                <label htmlFor="applicableProducts">Applicable Products</label>
                 <input
                   type="text"
-                  id="products"
-                  name="products"
-                  onChange={handleChange}
-                  placeholder="Applicable products"
+                  id="applicableProducts"
+                  name="applicableProducts"
+                  value={selectedProducts.length > 0 ? `${selectedProducts.length} products selected` : "All products"}
+                  onClick={openProductSelectionModal}
+                  readOnly
+                  placeholder="Click to select products"
                   required
                 />
               </div>
@@ -285,6 +311,14 @@ const PostOffer = () => {
           </form>
         </div>
       </div>
+
+      {/* Product Selection Modal */}
+      <ProductSelectionModal
+        isOpen={showProductModal}
+        onClose={() => setShowProductModal(false)}
+        onSave={handleProductSelection}
+        selectedProducts={selectedProducts}
+      />
     </div>
   )
 }

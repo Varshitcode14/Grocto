@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import ImageWithFallback from "../../components/ImageWithFallback"
-import { formatToIST } from "../../utils/dateUtils"
 import "./OrderConfirmation.css"
 
 const OrderConfirmation = () => {
@@ -39,6 +38,17 @@ const OrderConfirmation = () => {
     }
   }
 
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
   const formatTime = (timeString) => {
     if (!timeString) return ""
 
@@ -70,7 +80,7 @@ const OrderConfirmation = () => {
                   {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                 </div>
                 <h2>Order #{order.id}</h2>
-                <p className="order-date">Placed on {formatToIST(order.orderDate)}</p>
+                <p className="order-date">Placed on {formatDate(order.orderDate)}</p>
               </div>
 
               <div className="confirmation-actions">
@@ -103,7 +113,7 @@ const OrderConfirmation = () => {
                 {order.estimatedDeliveryTime && (
                   <div className="detail-row">
                     <span className="detail-label">Estimated Delivery:</span>
-                    <span className="detail-value">{formatToIST(order.estimatedDeliveryTime)}</span>
+                    <span className="detail-value">{formatDate(order.estimatedDeliveryTime)}</span>
                   </div>
                 )}
               </div>

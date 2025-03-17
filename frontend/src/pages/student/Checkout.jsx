@@ -18,6 +18,8 @@ const Checkout = () => {
     subtotal: 0,
     deliveryFee: 0,
     total: 0,
+    originalSubtotal: 0,
+    totalDiscount: 0,
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -65,7 +67,9 @@ const Checkout = () => {
       setSummary({
         subtotal: data.summary.subtotal,
         deliveryFee: 0, // Will be set when slot is selected
-        total: data.summary.subtotal, // Will be updated when slot is selected
+        total: data.summary.total, // Will be updated when slot is selected
+        originalSubtotal: data.summary.originalSubtotal,
+        totalDiscount: data.summary.totalDiscount,
       })
     } catch (error) {
       setError(error.message || "Error fetching cart")
@@ -331,23 +335,16 @@ const Checkout = () => {
         ? formData.newDeliveryAddress
         : savedAddresses.find((addr) => addr.id.toString() === formData.deliveryAddressId)?.address
 
-      // Create JSON data for API
-      const orderData = {
-        deliveryAddress: isAddingNewAddress
-          ? formData.newDeliveryAddress
-          : savedAddresses.find((addr) => addr.id.toString() === formData.deliveryAddressId)?.address,
-        deliveryStartTime: formData.deliveryStartTime,
-        deliveryEndTime: formData.deliveryEndTime,
-      }
-
-      console.log("Submitting order data:", orderData)
-
       const response = await fetch("http://localhost:5000/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(orderData),
+        body: JSON.stringify({
+          deliveryAddress,
+          deliveryStartTime: formData.deliveryStartTime,
+          deliveryEndTime: formData.deliveryEndTime,
+        }),
         credentials: "include",
       })
 
@@ -530,9 +527,25 @@ const Checkout = () => {
                         <div className="item-details">
                           <h4>{item.product.name}</h4>
                           <div className="item-price-qty">
-                            <span>
-                              ₹{item.product.price.toFixed(2)} × {item.quantity}
-                            </span>
+                            {item.discount ? (
+                              <div className="item-price-with-discount">
+                                <div className="price-line">
+                                  <span className="original-price">₹{item.product.price.toFixed(2)}</span>
+                                  <span className="discounted-price">₹{item.discountedPrice.toFixed(2)}</span>
+                                  <span>× {item.quantity}</span>
+                                </div>
+                                {item.appliedOffer && (
+                                  <div className="applied-offer">
+                                    <span className="offer-tag">OFFER</span>
+                                    <span className="offer-title">{item.appliedOffer.title}</span>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span>
+                                ₹{item.product.price.toFixed(2)} × {item.quantity}
+                              </span>
+                            )}
                             <span>₹{item.subtotal.toFixed(2)}</span>
                           </div>
                         </div>
@@ -541,6 +554,18 @@ const Checkout = () => {
                   </div>
 
                   <div className="price-summary">
+                    {summary.totalDiscount > 0 && (
+                      <div className="summary-row">
+                        <span>Original Subtotal</span>
+                        <span>₹{summary.originalSubtotal.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {summary.totalDiscount > 0 && (
+                      <div className="summary-row discount-row">
+                        <span>Discount</span>
+                        <span>-₹{summary.totalDiscount.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="summary-row">
                       <span>Subtotal</span>
                       <span>₹{summary.subtotal.toFixed(2)}</span>

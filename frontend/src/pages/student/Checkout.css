@@ -209,6 +209,58 @@
   font-size: 0.95rem;
 }
 
+/* Discount styling */
+.original-price {
+  text-decoration: line-through;
+  color: #999;
+  margin-right: 8px;
+  font-size: 0.9em;
+}
+
+.discounted-price {
+  color: #e53935;
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.item-price-with-discount {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.price-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.applied-offer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85em;
+}
+
+.offer-tag {
+  background-color: #4caf50;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+
+.offer-title {
+  color: #4caf50;
+  font-weight: 500;
+}
+
+.discount-row {
+  color: #4caf50;
+  font-weight: 500;
+}
+
 .price-summary {
   background-color: #f9f9f9;
   padding: 15px;

@@ -109,7 +109,6 @@ class Order(db.Model):
     total_amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default="pending")  # pending, accepted, rejected, packaging, delivering, delivered
     estimated_delivery_time = db.Column(db.DateTime, nullable=True)
-    delivery_person_contact = db.Column(db.String(200), nullable=True)  # Name an  nullable=True)
     delivery_person_contact = db.Column(db.String(200), nullable=True)  # Name and phone of delivery person
     student = db.relationship('Student', backref=db.backref('orders', lazy=True))
     seller = db.relationship('Seller', backref=db.backref('orders', lazy=True))
@@ -122,6 +121,7 @@ class OrderItem(db.Model):
     product_price = db.Column(db.Float, nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     subtotal = db.Column(db.Float, nullable=False)
+    discount_info = db.Column(db.Text, nullable=True)  # JSON string with discount details
     order = db.relationship('Order', backref=db.backref('items', lazy=True))
     product = db.relationship('Product')
 
