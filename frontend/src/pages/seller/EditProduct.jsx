@@ -6,6 +6,9 @@ import { useAuth } from "../../context/AuthContext"
 import { useModal } from "../../context/ModalContext"
 import "./AddProduct.css" // Reuse the same CSS as AddProduct
 
+// Get API URL from environment or use default
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"
+
 const EditProduct = () => {
   const { productId } = useParams()
   const navigate = useNavigate()
@@ -31,7 +34,7 @@ const EditProduct = () => {
   const fetchProductDetails = async () => {
     try {
       setFetchLoading(true)
-      const response = await fetch(`http://localhost:5000/api/products/${productId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/products/${productId}`, {
         credentials: "include",
       })
 
@@ -106,7 +109,7 @@ const EditProduct = () => {
         hasNewImage: !!image,
       })
 
-      const response = await fetch(`http://localhost:5000/api/products/${productId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/products/${productId}`, {
         method: "PUT",
         body: productData,
         credentials: "include",

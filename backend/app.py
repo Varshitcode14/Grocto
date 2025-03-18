@@ -3,22 +3,29 @@ from flask_cors import CORS
 from datetime import datetime, timedelta
 import os
 import pytz
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 from werkzeug.utils import secure_filename
 from models import db, User, Student, Seller, Product, CartItem, CartStore, Order, OrderItem, Notification, DeliverySlot, Address, Offer
 from flask_bcrypt import Bcrypt
 import json
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.urandom(24)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///grocto.db'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24))
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://grocto_db_vk_user:agHAOh7Gjlh0VhgD2jrVXxSTSJYdVLTN@dpg-cvc9npbtq21c739sm9sg-a.oregon-postgres.render.com/grocto_db_vk')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'uploads'
 
-# Ensure upload directory exists
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name="grocto",
+    api_key="745543927849318",
+    api_secret="DtdFNb33FNKnNIA__-4DtLd_BHA"
+)
 
-# Fix CORS configuration - update this to properly handle all routes
-CORS(app, origins=["http://localhost:5173"], supports_credentials=True, allow_headers=["Content-Type", "Authorization"], expose_headers=["Content-Type"], methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+# Configure CORS to allow requests from any origin in production
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
+CORS(app, origins=allowed_origins, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], expose_headers=["Content-Type"], methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 db.init_app(app)
 bcrypt = Bcrypt(app)
@@ -440,22 +447,17 @@ def get_store_products(store_id):
     product_list = []
     
     for product in products:
-        image_url = None
-        if product.image_path:
-            image_url = f"{request.host_url.rstrip('/')}/api/uploads/{product.image_path}"
-        
         product_list.append({
             "id": product.id,
             "name": product.name,
             "description": product.description,
             "price": product.price,
             "stock": product.stock,
-            "image": image_url
+            "image": product.image_path
         })
     
     return jsonify({"products": product_list}), 200
 
-# Product Routes
 @app.route('/api/products', methods=['GET'])
 def get_products():
     # Get limit parameter (optional)
@@ -480,10 +482,6 @@ def get_products():
     
     for product in products:
         seller = Seller.query.get(product.seller_id)
-        image_url = None
-        if product.image_path:
-            # Use request.host_url to get the base URL
-            image_url = f"{request.host_url.rstrip('/')}/api/uploads/{product.image_path}"
         
         product_list.append({
             "id": product.id,
@@ -491,7 +489,7 @@ def get_products():
             "description": product.description,
             "price": product.price,
             "stock": product.stock,
-            "image": image_url,
+            "image": product.image_path,
             "seller": {
                 "id": seller.id,
                 "storeName": seller.store_name
@@ -541,15 +539,15 @@ def add_product():
     if 'image' in request.files:
         image = request.files['image']
         if image and image.filename:
-            # Generate secure filename
-            filename = secure_filename(f"{int(datetime.utcnow().timestamp())}_{image.filename}")
-            image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            
-            # Save the image
-            image.save(image_path)
-            
-            # Set image path in product
-            new_product.image_path = filename
+            try:
+                # Upload to Cloudinary
+                upload_result = cloudinary.uploader.upload(image)
+                
+                # Store the Cloudinary URL in the database
+                new_product.image_path = upload_result['secure_url']
+            except Exception as e:
+                print(f"Error uploading to Cloudinary: {str(e)}")
+                return jsonify({"error": f"Failed to upload image: {str(e)}"}), 500
     
     db.session.add(new_product)
     db.session.commit()
@@ -563,7 +561,7 @@ def add_product():
             "description": new_product.description,
             "price": new_product.price,
             "stock": new_product.stock,
-            "image": f"{request.host_url.rstrip('/')}/api/uploads/{new_product.image_path}" if new_product.image_path else None
+            "image": new_product.image_path
         }
     }), 201
 
@@ -584,10 +582,6 @@ def get_product(product_id):
         if product.seller_id != seller.id:
             return jsonify({"error": "Unauthorized"}), 401
     
-    image_url = None
-    if product.image_path:
-        image_url = f"{request.host_url.rstrip('/')}/api/uploads/{product.image_path}"
-    
     return jsonify({
         "product": {
             "id": product.id,
@@ -595,7 +589,7 @@ def get_product(product_id):
             "description": product.description,
             "price": product.price,
             "stock": product.stock,
-            "image": image_url
+            "image": product.image_path
         }
     }), 200
 
@@ -641,23 +635,19 @@ def update_product(product_id):
     if 'image' in request.files:
         image = request.files['image']
         if image and image.filename:
-            # Generate secure filename
-            filename = secure_filename(f"{int(datetime.utcnow().timestamp())}_{image.filename}")
-            image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            
-            # Save the image
-            image.save(image_path)
-            
-            # Set image path in product
-            product.image_path = filename
+            try:
+                # Upload to Cloudinary
+                upload_result = cloudinary.uploader.upload(image)
+                
+                # Store the Cloudinary URL in the database
+                product.image_path = upload_result['secure_url']
+            except Exception as e:
+                print(f"Error uploading to Cloudinary: {str(e)}")
+                return jsonify({"error": f"Failed to upload image: {str(e)}"}), 500
     
     db.session.commit()
     
     # Return updated product data
-    image_url = None
-    if product.image_path:
-        image_url = f"{request.host_url.rstrip('/')}/api/uploads/{product.image_path}"
-    
     return jsonify({
         "message": "Product updated successfully",
         "product": {
@@ -666,7 +656,7 @@ def update_product(product_id):
             "description": product.description,
             "price": product.price,
             "stock": product.stock,
-            "image": image_url
+            "image": product.image_path
         }
     }), 200
 
@@ -688,12 +678,6 @@ def delete_product(product_id):
     
     # Delete the product
     try:
-        # Delete the product image if it exists
-        if product.image_path:
-            image_path = os.path.join(app.config['UPLOAD_FOLDER'], product.image_path)
-            if os.path.exists(image_path):
-                os.remove(image_path)
-        
         # Delete the product from the database
         db.session.delete(product)
         db.session.commit()
@@ -757,10 +741,6 @@ def get_cart():
     for item in cart_items:
         product = Product.query.get(item.product_id)
         
-        image_url = None
-        if product.image_path:
-            image_url = f"{request.host_url.rstrip('/')}/api/uploads/{product.image_path}"
-        
         # Calculate original price
         original_price = product.price
         original_item_subtotal = original_price * item.quantity
@@ -818,7 +798,7 @@ def get_cart():
                 "id": product.id,
                 "name": product.name,
                 "price": original_price,
-                "image": image_url
+                "image": product.image_path
             },
             "quantity": item.quantity,
             "originalSubtotal": original_item_subtotal,
@@ -907,6 +887,7 @@ def add_to_cart():
         # Delete cart store
         db.session.delete(cart_store)
         db.session.commit()
+
         cart_store = None
     
     # If no cart store, create one
@@ -1349,10 +1330,6 @@ def get_order(order_id):
     # Get order items
     items = []
     for item in order.items:
-        product_image = None
-        if item.product and item.product.image_path:
-            product_image = f"{request.host_url.rstrip('/')}/api/uploads/{item.product.image_path}"
-        
         items.append({
             "id": item.id,
             "productId": item.product_id,
@@ -1360,7 +1337,7 @@ def get_order(order_id):
             "productPrice": item.product_price,
             "quantity": item.quantity,
             "subtotal": item.subtotal,
-            "productImage": product_image
+            "productImage": item.product.image_path if item.product else None
         })
     
     # Get customer or store info
@@ -1541,24 +1518,7 @@ def mark_notification_read(notification_id):
         "message": "Notification marked as read"
     }), 200
 
-@app.route('/api/uploads/<filename>')
-def uploaded_file(filename):
-    """Serve uploaded files with proper headers"""
-    # Make the uploads folder accessible
-    try:
-        # Set proper CORS headers for image files
-        response = send_from_directory(os.path.abspath(app.config['UPLOAD_FOLDER']), filename)
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        response.headers['Cache-Control'] = 'public, max-age=31536000'
-        # Add content type header if not already set
-        if 'Content-Type' not in response.headers:
-            # Try to guess the content type based on file extension
-            if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp')):
-                response.headers['Content-Type'] = f'image/{filename.split(".")[-1].lower()}'
-        return response
-    except Exception as e:
-        print(f"Error serving file {filename}: {str(e)}")
-        return jsonify({"error": f"Could not serve file: {str(e)}"}), 404
+# No need for the uploaded_file route since we're using Cloudinary URLs directly
 
 # Add this new route after the existing routes, before the if __name__ == '__main__' line:
 
@@ -1971,6 +1931,7 @@ def delete_offer(offer_id):
     if 'user_id' not in session or session['role'] != 'seller':
         return jsonify({"error": "Unauthorized"}), 401
     
+    data = request.json
     user = User.query.get(session['user_id'])
     seller = Seller.query.filter_by(user_id=user.id).first()
     
@@ -2136,5 +2097,6 @@ def get_seller_insights():
     }), 200
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
 
