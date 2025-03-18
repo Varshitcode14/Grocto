@@ -2,6 +2,7 @@
 
 import { createContext, useState, useEffect, useContext, useRef } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
+import { api } from "../utils/api"
 
 const AuthContext = createContext()
 
@@ -37,11 +38,7 @@ export const AuthProvider = ({ children }) => {
   const checkAuthStatus = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`${backendUrl}/api/check-auth`, {
-        credentials: "include",
-      })
-
-      const data = await response.json()
+      const data = await api.get("/api/check-auth")
 
       if (data.authenticated) {
         setUser(data.user)
@@ -58,21 +55,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await fetch(`${backendUrl}/api/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || "Login failed")
-      }
-
-      const data = await response.json()
+      const data = await api.post("/api/login", { email, password })
       setUser(data.user)
       return data.user
     } catch (error) {
@@ -82,20 +65,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await fetch(`${backendUrl}/api/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(userData),
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || "Registration failed")
-      }
-
-      const data = await response.json()
+      const data = await api.post("/api/register", userData)
       return data
     } catch (error) {
       console.error("Registration error in context:", error)
@@ -105,10 +75,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await fetch(`${backendUrl}/api/logout`, {
-        method: "POST",
-        credentials: "include",
-      })
+      await api.post("/api/logout", {})
     } catch (error) {
       console.error("Logout error:", error)
     } finally {

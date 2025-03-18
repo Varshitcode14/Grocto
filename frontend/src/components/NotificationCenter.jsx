@@ -5,6 +5,7 @@ import { Link } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { formatToRelativeTime } from "../utils/dateUtils"
 import "./NotificationCenter.css"
+import { api } from "../utils/api"
 
 const NotificationCenter = () => {
   const { user } = useAuth()
@@ -42,15 +43,7 @@ const NotificationCenter = () => {
   const fetchNotifications = async () => {
     try {
       setLoading(true)
-      const response = await fetch("https://grocto-backend.onrender.com/api/notifications", {
-        credentials: "include",
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch notifications")
-      }
-
-      const data = await response.json()
+      const data = await api.get("/api/notifications")
       setNotifications(data.notifications || [])
       setUnreadCount(data.notifications.filter((n) => !n.isRead).length)
     } catch (error) {
@@ -62,15 +55,7 @@ const NotificationCenter = () => {
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await fetch("https://grocto-backend.onrender.com/api/notifications?unread=true", {
-        credentials: "include",
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch notifications")
-      }
-
-      const data = await response.json()
+      const data = await api.get("/api/notifications?unread=true")
       setUnreadCount(data.notifications.length)
     } catch (error) {
       console.error("Error fetching unread count:", error)
@@ -102,14 +87,7 @@ const NotificationCenter = () => {
 
   const markAsRead = async (notificationId) => {
     try {
-      const response = await fetch(`https://grocto-backend.onrender.com/api/notifications/${notificationId}/read`, {
-        method: "PUT",
-        credentials: "include",
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to mark notification as read")
-      }
+      await api.put(`/api/notifications/${notificationId}/read`, {})
 
       // Update local state
       setNotifications(notifications.map((n) => (n.id === notificationId ? { ...n, isRead: true } : n)))

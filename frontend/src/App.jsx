@@ -36,6 +36,7 @@ import "./App.css"
 import ErrorBoundary from "./components/ErrorBoundary"
 // First, import the Insights component at the top of the file with the other imports:
 import Insights from "./pages/seller/Insights"
+import AuthDebug from "./pages/Debug/AuthDebug"
 
 // Dashboard redirect component
 const DashboardRedirect = () => {
@@ -72,6 +73,7 @@ function App() {
                 <Route path="/signin" element={<SignIn />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/debug" element={<Debug />} />
+                <Route path="/debug/auth" element={<AuthDebug />} />
 
                 {/* Student Routes */}
                 <Route

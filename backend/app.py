@@ -25,7 +25,17 @@ cloudinary.config(
 
 # Configure CORS to allow requests from any origin in production
 allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:5173,https://grocto-frontend.onrender.com').split(',')
-CORS(app, origins=allowed_origins, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], expose_headers=["Content-Type"], methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+CORS(app, 
+    origins=allowed_origins, 
+    supports_credentials=True, 
+    allow_headers=["Content-Type", "Authorization"], 
+    expose_headers=["Content-Type"], 
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+
+# Configure session to work across domains
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_DOMAIN'] = '.onrender.com'  # Allow subdomains
 
 db.init_app(app)
 bcrypt = Bcrypt(app)
@@ -2103,6 +2113,16 @@ def get_seller_insights():
         "topCustomers": top_customers,
         "salesByMonth": sales_trend,
         "orderStatusDistribution": status_distribution
+    }), 200
+
+@app.route('/api/debug/session', methods=['GET'])
+def debug_session():
+    """Debug endpoint to check session status"""
+    return jsonify({
+        "session_exists": 'user_id' in session,
+        "user_id": session.get('user_id'),
+        "role": session.get('role'),
+        "session_keys": list(session.keys())
     }), 200
 
 if __name__ == '__main__':
