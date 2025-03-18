@@ -34,8 +34,8 @@ const OfferBanner = ({ storeId = null }) => {
       console.log("Fetching offers...")
 
       const url = storeId
-        ? `http://localhost:5000/api/offers/store/${storeId}`
-        : "http://localhost:5000/api/offers/active"
+        ? `https://grocto-backend.onrender.com/api/offers/store/${storeId}`
+        : "https://grocto-backend.onrender.com/api/offers/active"
 
       console.log("Fetching from URL:", url)
 

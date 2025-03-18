@@ -163,7 +163,7 @@ const EditOffer = () => {
         applicableProducts: formData.productScope === "all" ? "all" : selectedProducts,
       }
 
-      const response = await axios.put(`/api/offers/${id}`, offerData)
+      const response = await axios.put(`https://grocto-backend.onrender.com/api/offers/${id}`, offerData)
 
       toast.success("Offer updated successfully!")
       navigate("/seller/offers")

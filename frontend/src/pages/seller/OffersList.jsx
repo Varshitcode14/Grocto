@@ -21,7 +21,7 @@ const OffersList = () => {
   const fetchOffers = async () => {
     try {
       setLoading(true)
-      const response = await fetch("http://localhost:5000/api/offers", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/offers", {
         credentials: "include",
       })
 
@@ -47,7 +47,7 @@ const OffersList = () => {
     try {
       setDeleting((prev) => ({ ...prev, [offerId]: true }))
 
-      const response = await fetch(`http://localhost:5000/api/offers/${offerId}`, {
+      const response = await fetch(`https://grocto-backend.onrender.com/api/offers/${offerId}`, {
         method: "DELETE",
         credentials: "include",
       })

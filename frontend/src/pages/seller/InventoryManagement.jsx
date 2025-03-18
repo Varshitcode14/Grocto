@@ -25,7 +25,7 @@ const InventoryManagement = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true)
-      const response = await fetch("http://localhost:5000/api/products", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/products", {
         credentials: "include",
       })
 
@@ -54,7 +54,7 @@ const InventoryManagement = () => {
 
     try {
       setLoading(true)
-      const response = await fetch(`http://localhost:5000/api/products/${productToDelete}`, {
+      const response = await fetch(`https://grocto-backend.onrender.com/api/products/${productToDelete}`, {
         method: "DELETE",
         credentials: "include",
         headers: {

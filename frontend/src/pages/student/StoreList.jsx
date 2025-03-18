@@ -19,7 +19,7 @@ const StoreList = () => {
   const fetchStores = async () => {
     try {
       setLoading(true)
-      const response = await fetch("http://localhost:5000/api/stores", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/stores", {
         credentials: "include",
       })
 

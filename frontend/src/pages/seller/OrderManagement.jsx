@@ -26,7 +26,7 @@ const OrderManagement = () => {
   const fetchOrders = async () => {
     setLoading(true)
     try {
-      const response = await fetch("http://localhost:5000/api/orders", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/orders", {
         method: "GET",
         credentials: "include",
         headers: {
@@ -50,7 +50,7 @@ const OrderManagement = () => {
   // Add function to fetch delivery persons
   const fetchDeliveryPersons = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/seller/profile", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/seller/profile", {
         method: "GET",
         credentials: "include",
         headers: {
@@ -122,7 +122,7 @@ const OrderManagement = () => {
 
       const deliveryPersonContact = `${selectedPerson.name} (${selectedPerson.phone})`
 
-      const response = await fetch(`http://localhost:5000/api/orders/${currentOrderId}/status`, {
+      const response = await fetch(`https://grocto-backend.onrender.com/api/orders/${currentOrderId}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -172,7 +172,7 @@ const OrderManagement = () => {
 
       const payload = { status }
 
-      const response = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+      const response = await fetch(`https://grocto-backend.onrender.com/api/orders/${orderId}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

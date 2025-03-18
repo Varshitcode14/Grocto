@@ -7,7 +7,7 @@ import { useModal } from "../../context/ModalContext"
 import "./AddProduct.css" // Reuse the same CSS as AddProduct
 
 // Get API URL from environment or use default
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://grocto-backend.onrender.com"
 
 const EditProduct = () => {
   const { productId } = useParams()

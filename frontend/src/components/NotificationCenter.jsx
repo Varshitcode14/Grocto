@@ -42,7 +42,7 @@ const NotificationCenter = () => {
   const fetchNotifications = async () => {
     try {
       setLoading(true)
-      const response = await fetch("http://localhost:5000/api/notifications", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/notifications", {
         credentials: "include",
       })
 
@@ -62,7 +62,7 @@ const NotificationCenter = () => {
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/notifications?unread=true", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/notifications?unread=true", {
         credentials: "include",
       })
 
@@ -102,7 +102,7 @@ const NotificationCenter = () => {
 
   const markAsRead = async (notificationId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/notifications/${notificationId}/read`, {
+      const response = await fetch(`https://grocto-backend.onrender.com/api/notifications/${notificationId}/read`, {
         method: "PUT",
         credentials: "include",
       })

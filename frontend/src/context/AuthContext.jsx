@@ -13,6 +13,8 @@ export const AuthProvider = ({ children }) => {
   const previousPathRef = useRef(null)
   const isAuthenticatedRef = useRef(false)
 
+  const backendUrl = "https://grocto-backend.onrender.com" // Replace with your actual backend URL
+
   // Track previous path and authentication state
   useEffect(() => {
     // If user was previously authenticated and now on landing page, log them out
@@ -35,7 +37,7 @@ export const AuthProvider = ({ children }) => {
   const checkAuthStatus = async () => {
     try {
       setLoading(true)
-      const response = await fetch("http://localhost:5000/api/check-auth", {
+      const response = await fetch(`${backendUrl}/api/check-auth`, {
         credentials: "include",
       })
 
@@ -56,7 +58,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await fetch("http://localhost:5000/api/login", {
+      const response = await fetch(`${backendUrl}/api/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -80,7 +82,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await fetch("http://localhost:5000/api/register", {
+      const response = await fetch(`${backendUrl}/api/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -103,7 +105,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await fetch("http://localhost:5000/api/logout", {
+      await fetch(`${backendUrl}/api/logout`, {
         method: "POST",
         credentials: "include",
       })

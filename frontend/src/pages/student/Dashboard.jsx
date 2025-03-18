@@ -25,19 +25,19 @@ const StudentDashboard = () => {
       setLoading(true)
 
       // Fetch recent stores
-      const storesResponse = await fetch("http://localhost:5000/api/stores?limit=3", {
+      const storesResponse = await fetch("https://grocto-backend.onrender.com/api/stores?limit=3", {
         credentials: "include",
       })
       const storesData = await storesResponse.json()
 
       // Fetch recent products
-      const productsResponse = await fetch("http://localhost:5000/api/products?limit=4", {
+      const productsResponse = await fetch("https://grocto-backend.onrender.com/api/products?limit=4", {
         credentials: "include",
       })
       const productsData = await productsResponse.json()
 
       // Fetch cart items
-      const cartResponse = await fetch("http://localhost:5000/api/cart", {
+      const cartResponse = await fetch("https://grocto-backend.onrender.com/api/cart", {
         credentials: "include",
       })
       const cartData = await cartResponse.json()

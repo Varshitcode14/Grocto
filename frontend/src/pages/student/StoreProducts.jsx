@@ -30,7 +30,7 @@ const StoreProducts = () => {
 
   const fetchStoreDetails = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/stores/${storeId}`, {
+      const response = await fetch(`https://grocto-backend.onrender.com/api/stores/${storeId}`, {
         credentials: "include",
       })
 
@@ -49,7 +49,7 @@ const StoreProducts = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`http://localhost:5000/api/stores/${storeId}/products`, {
+      const response = await fetch(`https://grocto-backend.onrender.com/api/stores/${storeId}/products`, {
         credentials: "include",
       })
 
@@ -70,7 +70,7 @@ const StoreProducts = () => {
 
   const checkCartStore = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/cart/store", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/cart/store", {
         credentials: "include",
       })
 
@@ -97,7 +97,7 @@ const StoreProducts = () => {
 
       setAddingToCart((prev) => ({ ...prev, [productId]: true }))
 
-      const response = await fetch("http://localhost:5000/api/cart", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/cart", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

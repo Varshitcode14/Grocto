@@ -47,7 +47,7 @@ const UserProfile = () => {
 
     try {
       setLoading(true)
-      const response = await fetch("http://localhost:5000/api/student/profile", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/student/profile", {
         credentials: "include",
       })
 
@@ -138,7 +138,7 @@ const UserProfile = () => {
 
       console.log("Saving profile data:", profileData)
 
-      const response = await fetch("http://localhost:5000/api/student/profile", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/student/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

@@ -30,7 +30,7 @@ const ProfileSettings = () => {
 
     try {
       setLoading(true)
-      const response = await fetch("http://localhost:5000/api/seller/profile", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/seller/profile", {
         credentials: "include",
       })
 
@@ -125,7 +125,7 @@ const ProfileSettings = () => {
 
       console.log("Sending profile data:", updatedData)
 
-      const response = await fetch("http://localhost:5000/api/seller/profile", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/seller/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

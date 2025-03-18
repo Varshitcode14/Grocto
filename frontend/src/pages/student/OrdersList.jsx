@@ -19,33 +19,19 @@ const OrdersList = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true)
-      setError("")
-
-      console.log("Fetching orders...")
-      const response = await fetch("http://localhost:5000/api/orders", {
-        method: "GET",
+      const response = await fetch("https://grocto-backend.onrender.com/api/orders", {
         credentials: "include",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        mode: "cors",
       })
 
-      console.log("Response status:", response.status)
-
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error("Error response:", errorText)
-        throw new Error(`Failed to fetch orders: ${response.status} ${response.statusText}`)
+        throw new Error("Failed to fetch orders")
       }
 
       const data = await response.json()
-      console.log("Orders data:", data)
       setOrders(data.orders || [])
     } catch (error) {
-      console.error("Error fetching orders:", error)
       setError(error.message || "Error fetching orders")
+      console.error("Error fetching orders:", error)
     } finally {
       setLoading(false)
     }
@@ -78,14 +64,7 @@ const OrdersList = () => {
           <p>Track and manage your orders</p>
         </div>
 
-        {error && (
-          <div className="error-message">
-            <p>{error}</p>
-            <button className="btn btn-primary mt-3" onClick={fetchOrders}>
-              Try Again
-            </button>
-          </div>
-        )}
+        {error && <div className="error-message">{error}</div>}
 
         {loading ? (
           <div className="loading">Loading orders...</div>

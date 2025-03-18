@@ -24,7 +24,7 @@ cloudinary.config(
 )
 
 # Configure CORS to allow requests from any origin in production
-allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:5173,https://grocto-frontend.onrender.com').split(',')
 CORS(app, origins=allowed_origins, supports_credentials=True, allow_headers=["Content-Type", "Authorization"], expose_headers=["Content-Type"], methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 db.init_app(app)
@@ -37,6 +37,15 @@ with app.app_context():
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({"status": "healthy", "message": "Grocto API is running"})
+
+# Add or update the health check endpoint
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({
+        "status": "healthy",
+        "message": "Grocto API is running",
+        "version": "1.0.0"
+    }), 200
 
 # Authentication Routes
 @app.route('/api/register', methods=['POST'])
@@ -1290,7 +1299,7 @@ def get_orders():
     
     response = jsonify({"orders": order_list})
     # Add CORS headers directly to this response
-    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+    response.headers.add('Access-Control-Allow-Origin', 'https://grocto-frontend.onrender.com')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
@@ -1300,7 +1309,7 @@ def get_orders():
 @app.route('/api/orders', methods=['OPTIONS'])
 def options_orders():
     response = jsonify({'status': 'success'})
-    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+    response.headers.add('Access-Control-Allow-Origin', 'https://grocto-frontend.onrender.com')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
@@ -1385,7 +1394,7 @@ def get_order(order_id):
     
     response = jsonify({"order": order_data})
     # Add CORS headers directly to this response
-    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+    response.headers.add('Access-Control-Allow-Origin', 'https://grocto-frontend.onrender.com')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
@@ -1395,7 +1404,7 @@ def get_order(order_id):
 @app.route('/api/orders/<int:order_id>', methods=['OPTIONS'])
 def options_order_detail(order_id):
     response = jsonify({'status': 'success'})
-    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:5173')
+    response.headers.add('Access-Control-Allow-Origin', 'https://grocto-frontend.onrender.com')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')

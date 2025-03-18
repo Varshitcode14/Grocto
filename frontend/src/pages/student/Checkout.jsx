@@ -46,7 +46,7 @@ const Checkout = () => {
   const fetchCart = async () => {
     try {
       setLoading(true)
-      const response = await fetch("http://localhost:5000/api/cart", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/cart", {
         credentials: "include",
       })
 
@@ -336,7 +336,7 @@ const Checkout = () => {
         ? formData.newDeliveryAddress
         : savedAddresses.find((addr) => addr.id.toString() === formData.deliveryAddressId)?.address
 
-      const response = await fetch("http://localhost:5000/api/orders", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

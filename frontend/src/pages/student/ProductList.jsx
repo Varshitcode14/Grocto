@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import { useAuth } from "../../context/AuthContext"
 import ImageWithFallback from "../../components/ImageWithFallback"
 import OfferBanner from "../../components/OfferBanner"
+import DebugOfferBanner from "../../components/DebugOfferBanner"
 import "./ProductList.css"
-// Add useNavigate import at the top
 import { useNavigate } from "react-router-dom"
 import { useModal } from "../../context/ModalContext"
 
@@ -18,7 +18,6 @@ const ProductList = () => {
   const [error, setError] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [addingToCart, setAddingToCart] = useState({})
-  // Add cartStore state and checkCartStore function
   const [cartStore, setCartStore] = useState(null)
 
   useEffect(() => {
@@ -28,7 +27,7 @@ const ProductList = () => {
 
   const checkCartStore = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/cart/store", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/cart/store", {
         credentials: "include",
       })
 
@@ -44,7 +43,7 @@ const ProductList = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true)
-      const response = await fetch("http://localhost:5000/api/products", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/products", {
         credentials: "include",
       })
 
@@ -63,7 +62,6 @@ const ProductList = () => {
     }
   }
 
-  // Update the addToCart function to handle store switching
   const addToCart = async (productId, sellerId) => {
     try {
       // If cart has items from another store, confirm with user
@@ -78,7 +76,7 @@ const ProductList = () => {
 
       setAddingToCart((prev) => ({ ...prev, [productId]: true }))
 
-      const response = await fetch("http://localhost:5000/api/cart", {
+      const response = await fetch("https://grocto-backend.onrender.com/api/cart", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -111,7 +109,7 @@ const ProductList = () => {
     (product) =>
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.seller.storeName.toLowerCase().includes(searchTerm.toLowerCase()),
+      product.seller?.storeName?.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   return (
@@ -157,13 +155,13 @@ const ProductList = () => {
                 </div>
                 <div className="product-details">
                   <h3>{product.name}</h3>
-                  <p className="product-seller">by {product.seller.storeName}</p>
+                  {product.seller?.storeName && <p className="product-seller">by {product.seller.storeName}</p>}
                   {product.description && <p className="product-description">{product.description}</p>}
                   <p className="product-price">₹{product.price.toFixed(2)}</p>
                   <p className="product-stock">{product.stock > 0 ? `${product.stock} in stock` : "Out of stock"}</p>
                   <button
                     className="btn btn-primary add-to-cart-btn"
-                    onClick={() => addToCart(product.id, product.seller.id)}
+                    onClick={() => addToCart(product.id, product.seller?.id)}
                     disabled={product.stock <= 0 || addingToCart[product.id]}
                   >
                     {addingToCart[product.id] ? "Adding..." : "Add to Cart"}
@@ -178,6 +176,9 @@ const ProductList = () => {
           </div>
         )}
       </div>
+
+      {/* Add debug component */}
+      <DebugOfferBanner />
     </div>
   )
 }
