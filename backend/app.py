@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, session, send_from_directory
+from flask import Flask, jsonify, request, session, send_from_directory, make_response
 from flask_cors import CORS
 from datetime import datetime, timedelta
 import os
@@ -25,17 +25,25 @@ cloudinary.config(
 
 # Configure CORS to allow requests from any origin in production
 allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:5173,https://grocto-frontend.onrender.com').split(',')
+
+# More permissive CORS configuration
 CORS(app, 
     origins=allowed_origins, 
     supports_credentials=True, 
-    allow_headers=["Content-Type", "Authorization"], 
-    expose_headers=["Content-Type"], 
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"], 
+    expose_headers=["Content-Type", "Set-Cookie"], 
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 # Configure session to work across domains
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
-app.config['SESSION_COOKIE_DOMAIN'] = '.onrender.com'  # Allow subdomains
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Longer session lifetime
+
+# Make sessions permanent by default
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
 
 db.init_app(app)
 bcrypt = Bcrypt(app)
@@ -43,6 +51,15 @@ bcrypt = Bcrypt(app)
 # Create database tables
 with app.app_context():
     db.create_all()
+
+# Helper function to add CORS headers to responses
+def add_cors_headers(response):
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://grocto-frontend.onrender.com')
+    response.headers.add('Access-Control-Allow-Origin', frontend_url)
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -141,6 +158,7 @@ def login():
         return jsonify({"error": "Invalid email or password"}), 401
     
     # Set session data
+    session.clear()  # Clear any existing session
     session['user_id'] = user.id
     session['role'] = user.role
     
@@ -188,7 +206,8 @@ def login():
             'deliveryPersons': delivery_persons
         }
     
-    return jsonify({
+    # Create response with explicit cookie settings
+    response = jsonify({
         "message": "Login successful",
         "user": {
             "id": user.id,
@@ -197,21 +216,43 @@ def login():
             "role": user.role,
             "profile": profile_data
         }
-    }), 200
+    })
+    
+    # Add CORS headers
+    response = add_cors_headers(response)
+    
+    # Log session info for debugging
+    print(f"Login successful for user {user.id}. Session: {dict(session)}")
+    
+    return response, 200
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
-    session.pop('user_id', None)
-    session.pop('role', None)
-    return jsonify({"message": "Logout successful"}), 200
+    # Log session info before clearing
+    print(f"Logout called. Current session: {dict(session)}")
+    
+    session.clear()
+    
+    # Create response with explicit cookie settings
+    response = jsonify({"message": "Logout successful"})
+    
+    # Add CORS headers
+    response = add_cors_headers(response)
+    
+    return response, 200
 
 @app.route('/api/check-auth', methods=['GET'])
 def check_auth():
+    # Log session info for debugging
+    print(f"Check auth called. Current session: {dict(session)}")
+    
     if 'user_id' in session:
-        user = User.query.get(session['user_id'])
+        user_id = session.get('user_id')
+        user = User.query.get(user_id)
         
         if not user:
-            return jsonify({"authenticated": False}), 200
+            response = jsonify({"authenticated": False})
+            return add_cors_headers(response), 200
         
         # Get role-specific data
         profile_data = {}
@@ -257,7 +298,7 @@ def check_auth():
                 'deliveryPersons': delivery_persons
             }
         
-        return jsonify({
+        response = jsonify({
             "authenticated": True,
             "user": {
                 "id": user.id,
@@ -266,9 +307,15 @@ def check_auth():
                 "role": user.role,
                 "profile": profile_data
             }
-        }), 200
+        })
+        
+        # Add CORS headers
+        response = add_cors_headers(response)
+        
+        return response, 200
     
-    return jsonify({"authenticated": False}), 200
+    response = jsonify({"authenticated": False})
+    return add_cors_headers(response), 200
 
 # Delivery Slot Routes
 @app.route('/api/delivery-slots', methods=['GET'])
@@ -293,6 +340,9 @@ def get_delivery_slots():
 
 @app.route('/api/delivery-slots', methods=['POST'])
 def add_delivery_slot():
+    # Log session info for debugging
+    print(f"Add delivery slot called. Current session: {dict(session)}")
+    
     if 'user_id' not in session or session['role'] != 'seller':
         return jsonify({"error": "Unauthorized"}), 401
     
@@ -711,6 +761,9 @@ def delete_product(product_id):
 # Cart Routes
 @app.route('/api/cart', methods=['GET'])
 def get_cart():
+    # Log session info for debugging
+    print(f"Get cart called. Current session: {dict(session)}")
+    
     if 'user_id' not in session or session['role'] != 'student':
         return jsonify({"error": "Unauthorized"}), 401
     
@@ -842,7 +895,7 @@ def get_cart():
     # Calculate total
     total = subtotal + delivery_fee
     
-    return jsonify({
+    response = jsonify({
         "items": items,
         "store": store,
         "deliverySlots": delivery_slots,
@@ -853,7 +906,12 @@ def get_cart():
             "deliveryFee": delivery_fee,
             "total": total
         }
-    }), 200
+    })
+    
+    # Add CORS headers
+    response = add_cors_headers(response)
+    
+    return response, 200
 
 @app.route('/api/cart/store', methods=['GET'])
 def get_cart_store():
@@ -934,14 +992,19 @@ def add_to_cart():
     
     db.session.commit()
     
-    return jsonify({
+    response = jsonify({
         "message": "Product added to cart",
         "cartItem": {
             "id": cart_item.id,
             "productId": cart_item.product_id,
             "quantity": cart_item.quantity
         }
-    }), 201
+    })
+    
+    # Add CORS headers
+    response = add_cors_headers(response)
+    
+    return response, 201
 
 @app.route('/api/cart/<int:item_id>', methods=['PUT'])
 def update_cart_item(item_id):
@@ -982,7 +1045,8 @@ def update_cart_item(item_id):
                 db.session.delete(cart_store)
                 db.session.commit()
         
-        return jsonify({"message": "Item removed from cart"}), 200
+        response = jsonify({"message": "Item removed from cart"})
+        return add_cors_headers(response), 200
     
     # Check if product has enough stock
     if product.stock < quantity:
@@ -992,14 +1056,19 @@ def update_cart_item(item_id):
     cart_item.quantity = quantity
     db.session.commit()
     
-    return jsonify({
+    response = jsonify({
         "message": "Cart item updated",
         "cartItem": {
             "id": cart_item.id,
             "productId": cart_item.product_id,
             "quantity": cart_item.quantity
         }
-    }), 200
+    })
+    
+    # Add CORS headers
+    response = add_cors_headers(response)
+    
+    return response, 200
 
 @app.route('/api/cart/<int:item_id>', methods=['DELETE'])
 def remove_cart_item(item_id):
@@ -1027,7 +1096,8 @@ def remove_cart_item(item_id):
             db.session.delete(cart_store)
             db.session.commit()
     
-    return jsonify({"message": "Item removed from cart"}), 200
+    response = jsonify({"message": "Item removed from cart"})
+    return add_cors_headers(response), 200
 
 # Order Routes
 @app.route('/api/orders', methods=['POST'])
@@ -1488,6 +1558,9 @@ def update_order_status(order_id):
 # Notification Routes
 @app.route('/api/notifications', methods=['GET'])
 def get_notifications():
+    # Log session info for debugging
+    print(f"Get notifications called. Current session: {dict(session)}")
+    
     if 'user_id' not in session:
         return jsonify({"error": "Unauthorized"}), 401
     
@@ -1514,7 +1587,8 @@ def get_notifications():
             "createdAt": notification.created_at.isoformat()
         })
     
-    return jsonify({"notifications": notification_list}), 200
+    response = jsonify({"notifications": notification_list})
+    return add_cors_headers(response), 200
 
 @app.route('/api/notifications/<int:notification_id>/read', methods=['PUT'])
 def mark_notification_read(notification_id):
@@ -1533,11 +1607,14 @@ def mark_notification_read(notification_id):
     notification.is_read = True
     db.session.commit()
     
-    return jsonify({
+    response = jsonify({
         "message": "Notification marked as read"
-    }), 200
-
-# No need for the uploaded_file route since we're using Cloudinary URLs directly
+    })
+    
+    # Add CORS headers
+    response = add_cors_headers(response)
+    
+    return response, 200
 
 # Add this new route after the existing routes, before the if __name__ == '__main__' line:
 
@@ -2118,12 +2195,25 @@ def get_seller_insights():
 @app.route('/api/debug/session', methods=['GET'])
 def debug_session():
     """Debug endpoint to check session status"""
-    return jsonify({
+    response = jsonify({
         "session_exists": 'user_id' in session,
         "user_id": session.get('user_id'),
         "role": session.get('role'),
-        "session_keys": list(session.keys())
-    }), 200
+        "session_keys": list(session.keys()),
+        "cookies": dict(request.cookies),
+        "headers": {k: v for k, v in request.headers.items()},
+    })
+    
+    # Add CORS headers
+    response = add_cors_headers(response)
+    
+    return response, 200
+
+# Add a route to handle OPTIONS requests for all endpoints
+@app.route('/<path:path>', methods=['OPTIONS'])
+def options_handler(path):
+    response = jsonify({'status': 'success'})
+    return add_cors_headers(response), 200
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

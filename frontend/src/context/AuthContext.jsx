@@ -14,8 +14,6 @@ export const AuthProvider = ({ children }) => {
   const previousPathRef = useRef(null)
   const isAuthenticatedRef = useRef(false)
 
-  const backendUrl = "https://grocto-backend.onrender.com" // Replace with your actual backend URL
-
   // Track previous path and authentication state
   useEffect(() => {
     // If user was previously authenticated and now on landing page, log them out
@@ -42,12 +40,28 @@ export const AuthProvider = ({ children }) => {
 
       if (data.authenticated) {
         setUser(data.user)
+        // Store user data in localStorage as a backup
+        localStorage.setItem("user", JSON.stringify(data.user))
       } else {
-        setUser(null)
+        // Try to get user from localStorage if session is not available
+        const storedUser = localStorage.getItem("user")
+        if (storedUser && api.getAuthToken()) {
+          setUser(JSON.parse(storedUser))
+        } else {
+          setUser(null)
+          localStorage.removeItem("user")
+        }
       }
     } catch (error) {
       console.error("Auth check error:", error)
-      setUser(null)
+      // Try to get user from localStorage if session check fails
+      const storedUser = localStorage.getItem("user")
+      if (storedUser && api.getAuthToken()) {
+        setUser(JSON.parse(storedUser))
+      } else {
+        setUser(null)
+        localStorage.removeItem("user")
+      }
     } finally {
       setLoading(false)
     }
@@ -57,6 +71,8 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await api.post("/api/login", { email, password })
       setUser(data.user)
+      // Store user data in localStorage as a backup
+      localStorage.setItem("user", JSON.stringify(data.user))
       return data.user
     } catch (error) {
       throw error
@@ -79,8 +95,10 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Logout error:", error)
     } finally {
-      // Always clear user state, even if server request fails
+      // Always clear user state and tokens, even if server request fails
       setUser(null)
+      localStorage.removeItem("user")
+      api.removeAuthToken()
     }
   }
 
