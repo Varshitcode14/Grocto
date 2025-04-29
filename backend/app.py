@@ -13,7 +13,7 @@ import json
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24))
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://grocto_db_vk_user:agHAOh7Gjlh0VhgD2jrVXxSTSJYdVLTN@dpg-cvc9npbtq21c739sm9sg-a.oregon-postgres.render.com/grocto_db_vk')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://grocto_new_user:JIOYMLaURSBAOOiD3HBQXvJ2A8FyvbYI@dpg-d08i7hvdiees738lft40-a.oregon-postgres.render.com/grocto_new')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Configure Cloudinary
